@@ -245,7 +245,7 @@ def sample_discrete_features(probX, probE, node_mask):
     probX = probX.reshape(bs * n, -1)       # (bs * n, dx_out)
 
     # Sample X
-    X_t = probX.multinomial(1)                                  # (bs * n, 1)
+    X_t = probX.multinomial(1)   # (bs * n, 1)
     X_t = X_t.reshape(bs, n)     # (bs, n)
 
     # Noise E

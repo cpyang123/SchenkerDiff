@@ -76,15 +76,15 @@ class SchenkerGraphDataModule(AbstractDataModule):
         self.datadir = cfg.dataset.datadir
         base_path = pathlib.Path(os.path.realpath(__file__)).parents[2]
         root_path = os.path.join(base_path, self.datadir)
-        # with open(TRAIN_NAMES, "r") as file:
-        #     names = file.readlines()
-        #     names = [line.strip() for line in names if line[0] != "#"]
+        with open(os.path.join(root_path, TRAIN_NAMES), "r") as file:
+            names = file.readlines()
+        names = [line.strip() for line in names if line[0] != "#"]
 
-        datasets = {'train': HeteroGraphData(dataset_name=self.cfg.dataset.name,
+        datasets = {'train': HeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
                                                  split='train', root=root_path),
-                    'val': HeteroGraphData(dataset_name=self.cfg.dataset.name,
+                    'val': HeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
                                         split='val', root=root_path),
-                    'test': HeteroGraphData(dataset_name=self.cfg.dataset.name,
+                    'test': HeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
                                         split='test', root=root_path)}
 
         super().__init__(cfg, datasets)
@@ -99,7 +99,8 @@ class SchenkerDatasetInfos(AbstractDatasetInfos):
         self.datamodule = datamodule
         self.name = 'nx_graphs'
         self.n_nodes = self.datamodule.node_counts()
-        self.node_types = torch.tensor([1])               # There are no node types
+        # self.node_types = torch.tensor([1])               # There are no node types 
+        self.node_types = self.datamodule.node_types()      # LIKE HELL THERE AREN'T!
         self.edge_types = self.datamodule.edge_counts()
         super().complete_infos(self.n_nodes, self.node_types)
 
@@ -108,7 +109,7 @@ class SchenkerDatasetInfos(AbstractDatasetInfos):
 
 INTERVAL_EDGES = [1, 2, 3, 4, 5, 8]
 NUM_DEPTHS = 7
-NUM_FEATURES = 44 + 42 - 1 - 35
+NUM_FEATURES = 42
 INCLUDE_GLOBAL_NODES = True
 
 class HeteroGraphData(Dataset):
@@ -140,8 +141,8 @@ class HeteroGraphData(Dataset):
             file_path = os.path.join(self.processed_dir, file_name)
             if os.path.isfile(file_path):
                 self.data_list.append(torch.load(file_path))
-            #else:
-                #print(f"Missing processed file: {file_path}")
+            else:
+                print(f"Missing processed file: {file_path}")
         self.root = root
 
     def len(self):
@@ -177,31 +178,30 @@ class HeteroGraphData(Dataset):
         return torch.tensor(array, dtype=torch.float)
     
     @staticmethod
-    def resize_tensor(x, target_rows=50, target_cols=51):
-        # Get the current size of the tensor
+    def resize_tensor(x, target_rows=50, target_cols=52):
+        assert torch.all((x == 0) | (x == 1)), "Tensor contains values other than 0 or 1."
+
         current_rows, current_cols = x.shape
         
-        # Step 1: Pad or truncate the columns to target_cols
+        # Pad or truncate the columns to target_cols
         if current_cols < target_cols:
-            # Pad columns with zeros
             x = torch.nn.functional.pad(x, (0, target_cols - current_cols))
         elif current_cols > target_cols:
-            # Truncate extra columns
-            x = x[:, :target_cols]
+            x = x[:, :target_cols] # Truncate columns
         
-        # Step 2: Pad or truncate the rows to target_rows
+        # Pad or truncate the rows to target_rows
         if current_rows < target_rows:
-            # Create the one-hot row for padding
+            # one-hot row for padding
             one_hot_row = torch.zeros(1, target_cols)
             one_hot_row[0, -1] = 1
-            # Repeat the one-hot row for the missing rows
+
             padding_rows = target_rows - current_rows
             padding_tensor = one_hot_row.repeat(padding_rows, 1)
-            # Concatenate the padding rows to the tensor
+            
+            # Concatenate padding to tensor
             x = torch.cat([x, padding_tensor], dim=0)
         elif current_rows > target_rows:
-            # Truncate extra rows
-            x = x[:target_rows, :]
+            x = x[:target_rows, :] # Truncate rows
         
         return x
     
@@ -212,9 +212,7 @@ class HeteroGraphData(Dataset):
         
         edge_indices = []
         edge_attrs = []
-        # print(hetero_data)
-        # print(hetero_data.edge_types)
-        edge_types = list(hetero_data.edge_types)[:] # getting rid of the firs 'note'
+        edge_types = list(hetero_data.edge_types)[:] # getting rid of the first 'note'
         # print(edge_types)
         one_hot_dict = {edge_type: idx for idx, edge_type in enumerate(edge_types)}
         
@@ -231,9 +229,15 @@ class HeteroGraphData(Dataset):
         edge_indices = torch.cat(edge_indices, dim=1)  
         edge_attrs = torch.cat(edge_attrs, dim=0) 
         padded_edge_attrs = F.pad(edge_attrs, (0, 30 - edge_attrs.size()[1]), mode='constant', value=0)
+        
+        # Fill all gaps with [0,0,0,...,1] where there are rows with all zeros
+        sums = x.sum(dim=-1)
+        zero_mask = (sums == 0)  
+        x[zero_mask, -1] = 1
 
-
-        data = Data(x=x, edge_index=edge_indices, edge_attr=padded_edge_attrs, y=torch.empty((0,1)))
+        assert torch.all((x == 0) | (x == 1)), "Tensor contains values other than 0 or 1."
+        
+        data = Data(x=x, edge_index=edge_indices, edge_attr=padded_edge_attrs, y=torch.zeros([1, 0]))
 
         return data
 
@@ -573,7 +577,7 @@ class HeteroGraphData(Dataset):
         index = 0
         for directory in self.train_names:
             pkl_files = []
-            filepath = f"../{directory}/**/*" if self.test_mode else f"{directory}/**/*"
+            filepath = f"../{directory}/**/*" if self.test_mode else f"../../../SchenkerDiff/{directory}/**/*"
             # filepath = f"{directory}/**/*"
             pkl_files.extend(glob.glob(filepath + ".pkl", recursive=True))
             pkl_file = pkl_files[0]

@@ -242,6 +242,5 @@ def main(cfg: DictConfig):
                     print("Loading checkpoint", ckpt_path)
                     trainer.test(model, datamodule=datamodule, ckpt_path=ckpt_path)
 
-
 if __name__ == '__main__':
     main()

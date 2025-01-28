@@ -80,8 +80,9 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             self.limit_dist = src.utils.PlaceHolder(X=x_limit, E=e_limit, y=y_limit)
         elif cfg.model.transition == 'marginal':
 
-            node_types = self.dataset_info.node_types.float()
+            node_types = self.dataset_info.node_types.float() + 1e-6 # adding small constant to avoid zeros
             x_marginals = node_types / torch.sum(node_types)
+            # x_marginals = torch.softmax(x_marginals, dim = 1) # making sure everything still adds up to 1
 
             edge_types = self.dataset_info.edge_types.float()
             e_marginals = edge_types / torch.sum(edge_types)
@@ -104,7 +105,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         if data.edge_index.numel() == 0:
             self.print("Found a batch with no edges. Skipping.")
             return
-        dense_data, node_mask = utils.to_dense(data.x, data.edge_index, data.edge_attr, data.batch)
+        dense_data, node_mask = src.utils.to_dense(data.x, data.edge_index, data.edge_attr, data.batch)
         dense_data = dense_data.mask(node_mask)
         X, E = dense_data.X, dense_data.E
         noisy_data = self.apply_noise(X, E, data.y, node_mask)
@@ -224,10 +225,10 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         self.test_X_logp.reset()
         self.test_E_logp.reset()
         if self.local_rank == 0:
-            utils.setup_wandb(self.cfg)
+            src.utils.setup_wandb(self.cfg)
 
     def test_step(self, data, i):
-        dense_data, node_mask = utils.to_dense(data.x, data.edge_index, data.edge_attr, data.batch)
+        dense_data, node_mask = src.utils.to_dense(data.x, data.edge_index, data.edge_attr, data.batch)
         dense_data = dense_data.mask(node_mask)
         noisy_data = self.apply_noise(dense_data.X, dense_data.E, data.y, node_mask)
         extra_data = self.compute_extra_data(noisy_data)
@@ -381,7 +382,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         y0 = sampled0.y
         assert (X.shape == X0.shape) and (E.shape == E0.shape)
 
-        sampled_0 = utils.PlaceHolder(X=X0, E=E0, y=y0).mask(node_mask)
+        sampled_0 = src.utils.PlaceHolder(X=X0, E=E0, y=y0).mask(node_mask)
 
         # Predictions
         noisy_data = {'X_t': sampled_0.X, 'E_t': sampled_0.E, 'y_t': sampled_0.y, 'node_mask': node_mask,
@@ -402,7 +403,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         diag_mask = diag_mask.unsqueeze(0).expand(probE0.size(0), -1, -1)
         probE0[diag_mask] = torch.ones(self.Edim_output).type_as(probE0)
 
-        return utils.PlaceHolder(X=probX0, E=probE0, y=proby0)
+        return src.utils.PlaceHolder(X=probX0, E=probE0, y=proby0)
 
     def apply_noise(self, X, E, y, node_mask):
         """ Sample noise and apply it to the data. """
@@ -585,8 +586,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                 self.print('\r{}/{} complete'.format(i+1, num_molecules), end='', flush=True)
             self.print('\nVisualizing molecules...')
 
-            # Visualize the final molecules
-            current_path = os.getcwd()
+            # Visualize the final molecules 
             result_path = os.path.join(current_path,
                                        f'graphs/{self.name}/epoch{self.current_epoch}_b{batch_id}/')
             self.visualization_tools.visualize(result_path, molecule_list, save_final)
@@ -666,6 +666,6 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         extra_y = torch.cat((extra_features.y, extra_molecular_features.y), dim=-1)
 
         t = noisy_data['t']
-        extra_y = torch.cat((extra_y, t), dim=1)
+        extra_y = torch.cat((extra_y, t), dim=-1)
 
-        return utils.PlaceHolder(X=extra_X, E=extra_E, y=extra_y)
+        return src.utils.PlaceHolder(X=extra_X, E=extra_E, y=extra_y)

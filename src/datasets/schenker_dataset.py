@@ -208,8 +208,8 @@ class HeteroGraphData(Dataset):
     @staticmethod
     def hetero_to_data(self, hetero_data):
         # Initialize
-        # x = self.resize_tensor(hetero_data['note']['x'])
-        x =  hetero_data['note']['x']
+        x = self.resize_tensor(hetero_data['note']['x'])
+        # x =  hetero_data['note']['x']
         
         edge_indices = []
         edge_attrs = []
@@ -229,7 +229,7 @@ class HeteroGraphData(Dataset):
 
         edge_indices = torch.cat(edge_indices, dim=1)  
         edge_attrs = torch.cat(edge_attrs, dim=0) 
-        # padded_edge_attrs = F.pad(edge_attrs, (0, 30 - edge_attrs.size()[1]), mode='constant', value=0)
+        padded_edge_attrs = F.pad(edge_attrs, (0, 30 - edge_attrs.size()[1]), mode='constant', value=0)
         
         # Fill all gaps with [0,0,0,...,1] where there are rows with all zeros
         sums = x.sum(dim=-1)
@@ -238,7 +238,7 @@ class HeteroGraphData(Dataset):
 
         assert torch.all((x == 0) | (x == 1)), "Tensor contains values other than 0 or 1."
         
-        data = Data(x=x, edge_index=edge_indices, edge_attr=edge_attrs, y=torch.zeros([1, 0]))
+        data = Data(x=x, edge_index=edge_indices, edge_attr=padded_edge_attrs, y=torch.zeros([1, 0]))
 
         return data
 

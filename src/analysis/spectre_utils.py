@@ -373,7 +373,7 @@ def orca(graph):
         f.write(str(u) + ' ' + str(v) + '\n')
     f.close()
     output = sp.check_output(
-        [str(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'orca/orca')), 'node', '4', tmp_fname, 'std'])
+        [str(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'orca')), 'node', '4', tmp_fname, 'std'])
     output = output.decode('utf8').strip()
     idx = output.find(COUNT_START_STR) + len(COUNT_START_STR) + 2
     output = output[idx:]

@@ -1,10 +1,11 @@
 # Model settings
 type: 'discrete'
 transition: 'marginal'                          # uniform or marginal
+# transition: 'uniform'
 model: 'graph_tf'
-diffusion_steps: 200
+diffusion_steps: 500
 diffusion_noise_schedule: 'cosine'              # 'cosine', 'polynomial_2'
-n_layers: 1
+n_layers: 6
 
 
 extra_features: null        # 'all', 'cycles', 'eigenvalues' or null

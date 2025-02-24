@@ -451,12 +451,12 @@ class HeteroGraphData(Dataset):
             pkl_file=None, include_global_nodes=INCLUDE_GLOBAL_NODES
     ):
         edge_indices = {k: [] for k in [
-            "onset",
+            # "onset",
             "voice",
             "forward",
             # "slur",
             # "sustain",
-            "rest",
+            # "rest",
         ]}
         edge_indices = HeteroGraphData.add_interval_edges(pyscoreparser_notes, edge_indices)
         if include_depth_edges:

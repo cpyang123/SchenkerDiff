@@ -293,7 +293,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                 f.write("E: \n")
                 for bond_list in item[1]:
                     for bond in bond_list:
-                        f.write(f"{bond} ")
+                        f.write(f"{int(bond)} ")
                     f.write("\n")
                 f.write("\n")
         self.print("Generated graphs Saved. Computing sampling metrics...")
@@ -516,6 +516,16 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         z_T = diffusion_utils.sample_discrete_feature_noise(limit_dist=self.limit_dist, node_mask=node_mask)
         X, E, y = z_T.X, z_T.E, z_T.y
 
+        # # #### Modifying E to be a chain of nodes:
+        # # Create indices for adjacent nodes (i and i+1).
+        # E = torch.zeros(E.shape,  device=E.device)
+        # indices = torch.arange(E.shape[1]-1)
+        
+        # # Set the edge features for the forward connections (node i -> node i+1)
+        # E[:, indices, indices + 1, :] = 1
+        # # Set the edge features for the backward connections (node i+1 -> node i)
+        # E[:, indices + 1, indices, :] = 1
+
         assert (E == torch.transpose(E, 1, 2)).all()
         assert number_chain_steps < self.T
         chain_X_size = torch.Size((number_chain_steps, keep_chain, X.size(1)))
@@ -535,6 +545,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             sampled_s, discrete_sampled_s = self.sample_p_zs_given_zt(s_norm, t_norm, X, E, y, node_mask)
             X, E, y = sampled_s.X, sampled_s.E, sampled_s.y
 
+            
+
             # Save the first keep_chain graphs
             write_index = (s_int * number_chain_steps) // self.T
             chain_X[write_index] = discrete_sampled_s.X[:keep_chain]
@@ -543,7 +555,14 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         # Sample
         sampled_s = sampled_s.mask(node_mask, collapse=True)
         X, E, y = sampled_s.X, sampled_s.E, sampled_s.y
-
+        # # # Resetting E to be the super diagonal matrix
+        E = torch.zeros(E.shape,  device=E.device)
+        indices = torch.arange(E.shape[1]-1)
+        
+        # Set the edge features for the forward connections (node i -> node i+1)
+        E[:, indices, indices + 1] = 1
+        # Set the edge features for the backward connections (node i+1 -> node i)
+        E[:, indices + 1, indices] = 1
 
 
         # Prepare the chain for saving

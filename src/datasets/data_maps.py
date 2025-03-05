@@ -45,10 +45,17 @@ PITCH_CLASS_MAP = {
 #     'M7', 'AA-5', 'dd4', 'm3', 'm-6', 'AA-3', 'A6', 'AA7', 'd-4', 'dd-5', 'P4', 'AA1', 'm-3', 'd3', 'A-5', 'A5', 'A2',
 #     'M6', 'AA-7', 'AA3', 'm-2', 'dd-7', 'dd-6'
 # }
+# SCALE_DEGREE_MAP = {
+#     'A2', 'dd3', 'AA7', 'dd-2', 'm2', 'P8', 'A6', 'AAA4', 'd2', 'm7', 'A3', 'd3', 'A7', 'dd5', 'd5', 'd4', 'AA8', 'M2',
+#     'm6', 'AA2', 'M7', 'dd4', 'm3', 'A5', 'AA5', 'A4', 'AA3', 'ddd5', 'M3', 'P5', 'd7', 'P4', 'AA1', 'dd7', 'AA6', 'A1',
+#     'M6', 'AA4', 'A8', 'd6', 'dd2', 'dd6'
+# }
+
 SCALE_DEGREE_MAP = {
-    'A2', 'dd3', 'AA7', 'dd-2', 'm2', 'P8', 'A6', 'AAA4', 'd2', 'm7', 'A3', 'd3', 'A7', 'dd5', 'd5', 'd4', 'AA8', 'M2',
-    'm6', 'AA2', 'M7', 'dd4', 'm3', 'A5', 'AA5', 'A4', 'AA3', 'ddd5', 'M3', 'P5', 'd7', 'P4', 'AA1', 'dd7', 'AA6', 'A1',
-    'M6', 'AA4', 'A8', 'd6', 'dd2', 'dd6'
+    'A2', 'm2', 'P8', 'A6',
+    'm7', 'M2', 'm6', 'M7',
+    'm3', 'M3', 'P5', 'd7',
+    'P4', 'M6', 'A4', 'd5'
 }
 SCALE_DEGREE_MAP = {interval: i for i, interval in enumerate(SCALE_DEGREE_MAP)}
 

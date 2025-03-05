@@ -31,6 +31,13 @@ SAVE_FOLDER = "processed_data"
 TEST_NAMES = "test-names.txt"
 TEST_SAVE_FOLDER = "processed_data_test"
 
+
+
+
+class EnharmonicError(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
 class SchenkerGraphDataset(InMemoryDataset):
     def __init__(self, dataset_name, split = None, root = "", transform=None, pre_transform=None, pre_filter=None):
         self.dataset_name = dataset_name
@@ -109,7 +116,8 @@ class SchenkerDatasetInfos(AbstractDatasetInfos):
 
 INTERVAL_EDGES = [1, 2, 3, 4, 5, 8]
 NUM_DEPTHS = 7
-NUM_FEATURES = 42
+# NUM_FEATURES = 42
+NUM_FEATURES = 16
 INCLUDE_GLOBAL_NODES = True
 
 class HeteroGraphData(Dataset):
@@ -161,7 +169,7 @@ class HeteroGraphData(Dataset):
     def processed_file_names(self):
         if self.test_mode:
             return [f'{i}_processed.pt' for i in range(90)]
-        return [f'{i}_processed.pt' for i in range(1085)]
+        return [f'{i}_processed.pt' for i in range(1082)]
 
     @staticmethod
     def one_hot_convert(mapped_pitch, num_class):
@@ -182,6 +190,7 @@ class HeteroGraphData(Dataset):
         assert torch.all((x == 0) | (x == 1)), "Tensor contains values other than 0 or 1."
 
         current_rows, current_cols = x.shape
+        
         
         # Pad or truncate the columns to target_cols
         if current_cols < target_cols:
@@ -208,7 +217,7 @@ class HeteroGraphData(Dataset):
     @staticmethod
     def hetero_to_data(self, hetero_data):
         # Initialize
-        x = self.resize_tensor(hetero_data['note']['x'])
+        x = self.resize_tensor(hetero_data['note']['x'], target_cols = NUM_FEATURES + 1)
         # x =  hetero_data['note']['x']
         
         edge_indices = []
@@ -216,6 +225,7 @@ class HeteroGraphData(Dataset):
         edge_types = list(hetero_data.edge_types)[:] # getting rid of the first 'note'
         # print(edge_types)
         one_hot_dict = {edge_type: idx for idx, edge_type in enumerate(edge_types)}
+        # print(one_hot_dict)
         
         for edge_type in edge_types:
             edge_index = hetero_data[edge_type]['edge_index']
@@ -229,8 +239,8 @@ class HeteroGraphData(Dataset):
 
         edge_indices = torch.cat(edge_indices, dim=1)  
         edge_attrs = torch.cat(edge_attrs, dim=0) 
-        padded_edge_attrs = F.pad(edge_attrs, (0, 30 - edge_attrs.size()[1]), mode='constant', value=0)
-        
+        # padded_edge_attrs = F.pad(edge_attrs, (0, 30 - edge_attrs.size()[1]), mode='constant', value=0)
+        padded_edge_attrs = edge_attrs
         # Fill all gaps with [0,0,0,...,1] where there are rows with all zeros
         sums = x.sum(dim=-1)
         zero_mask = (sums == 0)  
@@ -388,8 +398,28 @@ class HeteroGraphData(Dataset):
 
     @staticmethod
     def get_scale_degrees(pyscoreparser_notes, key_signature: music21.key.Key):
+        # tonic = key_signature.tonic
+        # pitches = [music21.pitch.Pitch(note.pitch[0].replace("x", "##").replace("bb", "--")) for note in pyscoreparser_notes]
+        # intervals = [music21.interval.Interval(tonic, pitch) for pitch in pitches]
+        # intervals = [
+        #     i.directedName
+        #     if i.direction is music21.interval.Direction.ASCENDING
+        #     else i.complement.directedName
+        #     for i in intervals
+        # ]
+        
+        # return [
+        #     SCALE_DEGREE_MAP[i]
+        #     for i in intervals
+        # ]
         tonic = key_signature.tonic
         pitches = [music21.pitch.Pitch(note.pitch[0].replace("x", "##").replace("bb", "--")) for note in pyscoreparser_notes]
+        pitches = [
+            pitch
+            if tonic.name in [p.name for p in pitches]
+            else pitch.getEnharmonic()
+            for pitch in pitches
+        ]
         intervals = [music21.interval.Interval(tonic, pitch) for pitch in pitches]
         intervals = [
             i.directedName
@@ -397,11 +427,13 @@ class HeteroGraphData(Dataset):
             else i.complement.directedName
             for i in intervals
         ]
-        
-        return [
-            SCALE_DEGREE_MAP[i]
-            for i in intervals
-        ]
+        try:
+            intervals_mapped = [SCALE_DEGREE_MAP[i] for i in intervals]
+        except KeyError as e:
+            raise EnharmonicError(f"Enharmonic issue found {e}: \n"
+                                  f"tonic: {tonic.name} \n"
+                                  f"pitches: {[p.name for p in pitches]}")
+        return intervals_mapped
 
     @staticmethod
     def process_file_nodes(hetero_data, pyscoreparser_notes, key_signature: music21.key.Key, include_global_nodes=INCLUDE_GLOBAL_NODES):
@@ -452,17 +484,17 @@ class HeteroGraphData(Dataset):
     ):
         edge_indices = {k: [] for k in [
             # "onset",
-            "voice",
+            # "voice",
             "forward",
             # "slur",
             # "sustain",
             # "rest",
         ]}
-        edge_indices = HeteroGraphData.add_interval_edges(pyscoreparser_notes, edge_indices)
-        if include_depth_edges:
-            edge_indices = HeteroGraphData.add_voice_and_depth_edges(pkl_file, edge_indices)
-        if include_global_nodes:
-            edge_indices = HeteroGraphData.add_global_node_edges(pyscoreparser_notes, edge_indices)
+        # edge_indices = HeteroGraphData.add_interval_edges(pyscoreparser_notes, edge_indices)
+        # if include_depth_edges:
+        #     edge_indices = HeteroGraphData.add_voice_and_depth_edges(pkl_file, edge_indices)
+        # if include_global_nodes:
+        #     edge_indices = HeteroGraphData.add_global_node_edges(pyscoreparser_notes, edge_indices)
 
         for edge in notes_graph:
             from_to = edge[:2]
@@ -574,20 +606,44 @@ class HeteroGraphData(Dataset):
         return data_dict
 
     def process(self):
+        # self.data_list = []
+        # index = 0
+        # for directory in self.train_names:
+        #     pkl_files = []
+        #     filepath = f"../{directory}/**/*" if self.test_mode else f"../../../SchenkerDiff/{directory}/**/*"
+        #     # filepath = f"{directory}/**/*"
+        #     pkl_files.extend(glob.glob(filepath + ".pkl", recursive=True))
+        #     pkl_file = pkl_files[0]
+        #     xml_files = []
+        #     xml_files.extend(glob.glob(filepath + ".xml", recursive=True))
+        #     for xml_file in xml_files:
+        #         if index % 100 == 0:
+        #             print(f"Processing file {xml_file}")
+        #         self.process_file(xml_file, pkl_file, index, include_depth_edges=self.include_depth_edges)
+        #         index += 1
+
         self.data_list = []
         index = 0
         for directory in self.train_names:
             pkl_files = []
+            # filepath = f"../{directory}/**/*" if self.test_mode else f"{directory}/**/*"
             filepath = f"../{directory}/**/*" if self.test_mode else f"../../../SchenkerDiff/{directory}/**/*"
-            # filepath = f"{directory}/**/*"
             pkl_files.extend(glob.glob(filepath + ".pkl", recursive=True))
-            pkl_file = pkl_files[0]
+            if len(pkl_files) > 0:
+                # For inference
+                pkl_file = pkl_files[0]
+            else:
+                pkl_file = None
             xml_files = []
             xml_files.extend(glob.glob(filepath + ".xml", recursive=True))
             for xml_file in xml_files:
                 if index % 100 == 0:
                     print(f"Processing file {xml_file}")
-                self.process_file(xml_file, pkl_file, index, include_depth_edges=self.include_depth_edges)
+                try:
+                    self.process_file(xml_file, pkl_file, index, include_depth_edges=self.include_depth_edges)
+                except EnharmonicError as e:
+                    print(e)
+                    continue
                 index += 1
 
     def hetero_to_networkx(self, obj_idx):

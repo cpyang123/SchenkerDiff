@@ -592,6 +592,8 @@ class LiftedDenoisingDiffusion(pl.LightningModule):
                                                    y_size=(batch_size, self.ydim_output),
                                                    node_mask=node_mask)
         X, E, y = z_T.X, z_T.E, z_T.y
+        
+        
 
         assert (E == torch.transpose(E, 1, 2)).all()
         assert number_chain_steps < self.T

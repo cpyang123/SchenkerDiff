@@ -118,6 +118,7 @@ INTERVAL_EDGES = [1, 2, 3, 4, 5, 8]
 NUM_DEPTHS = 7
 # NUM_FEATURES = 42
 NUM_FEATURES = 16
+MAX_LEN = 40
 INCLUDE_GLOBAL_NODES = True
 
 class HeteroGraphData(Dataset):
@@ -152,6 +153,10 @@ class HeteroGraphData(Dataset):
             else:
                 print(f"Missing processed file: {file_path}")
         self.root = root
+        self.scale_degree_map = SCALE_DEGREE_MAP
+
+        with open('scale_degree_map.pkl', 'wb') as f:
+            pickle.dump(self.scale_degree_map, f)
 
     def len(self):
         return len(self.processed_file_names)
@@ -186,7 +191,7 @@ class HeteroGraphData(Dataset):
         return torch.tensor(array, dtype=torch.float)
     
     @staticmethod
-    def resize_tensor(x, target_rows=50, target_cols=52):
+    def resize_tensor(x, target_rows=MAX_LEN, target_cols=52):
         assert torch.all((x == 0) | (x == 1)), "Tensor contains values other than 0 or 1."
 
         current_rows, current_cols = x.shape
@@ -217,8 +222,8 @@ class HeteroGraphData(Dataset):
     @staticmethod
     def hetero_to_data(self, hetero_data):
         # Initialize
-        x = self.resize_tensor(hetero_data['note']['x'], target_cols = NUM_FEATURES + 1)
-        # x =  hetero_data['note']['x']
+        # x = self.resize_tensor(hetero_data['note']['x'], target_rows = MAX_LEN, target_cols = NUM_FEATURES + 1)
+        x =  hetero_data['note']['x']
         
         edge_indices = []
         edge_attrs = []
@@ -241,16 +246,25 @@ class HeteroGraphData(Dataset):
         edge_attrs = torch.cat(edge_attrs, dim=0) 
         # padded_edge_attrs = F.pad(edge_attrs, (0, 30 - edge_attrs.size()[1]), mode='constant', value=0)
         padded_edge_attrs = edge_attrs
-        # Fill all gaps with [0,0,0,...,1] where there are rows with all zeros
-        sums = x.sum(dim=-1)
-        zero_mask = (sums == 0)  
-        x[zero_mask, -1] = 1
+
+
+        # # # Fill all gaps with [0,0,0,...,1] where there are rows with all zeros
+        # sums = x.sum(dim=-1)
+        # zero_mask = (sums == 0)  
+        # x[zero_mask, -1] = 1
+
+        # make sure all the padding nodes connect to itself
+        # padding_mask = (x[:, -1] == 1)
+        # padding_nodes = torch.nonzero(padding_mask, as_tuple=True)[0]
+        # padding_edges = torch.stack([padding_nodes, padding_nodes], dim=0)
+        # edge_indices = torch.cat([edge_indices, padding_edges], dim=1)
+        
 
         assert torch.all((x == 0) | (x == 1)), "Tensor contains values other than 0 or 1."
         
         data = Data(x=x, edge_index=edge_indices, edge_attr=padded_edge_attrs, y=torch.zeros([1, 0]))
 
-        return data
+        return data #, rythm
 
     @staticmethod
     def add_interval_edges(notes: list[Note], edge_indices, intervals: list[int] = INTERVAL_EDGES):
@@ -459,12 +473,15 @@ class HeteroGraphData(Dataset):
 
         note_features = torch.cat([feature for feature in node_features.values()], dim=1)
 
-        if include_global_nodes:
-            global_nodes = torch.zeros(4, NUM_FEATURES, dtype=torch.float)
-            note_features = torch.cat([note_features, global_nodes], dim=0)
+        # if include_global_nodes:
+        #     global_nodes = torch.zeros(4, NUM_FEATURES, dtype=torch.float)
+        #     note_features = torch.cat([note_features, global_nodes], dim=0)
+
+        # [TODO] Rythmic features, including offsets, duration, metric_strngth
 
         notes_graph = score_graph.make_edge(pyscoreparser_notes)
         hetero_data['note'].x = note_features
+        # hetero_data['note'].r = Add rythmic features
 
         return hetero_data, notes_graph
 

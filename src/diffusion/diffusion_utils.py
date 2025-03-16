@@ -244,6 +244,11 @@ def sample_discrete_features(probX, probE, node_mask):
     # Flatten the probability tensor to sample with multinomial
     probX = probX.reshape(bs * n, -1)       # (bs * n, dx_out)
 
+    # Ensure non-zero probs
+    epsilon = 1e-9
+    probX = probX + epsilon
+    probX = probX / probX.sum(dim=-1, keepdim=True)  # Re-normalize to sum to 1
+
     # Sample X
     X_t = probX.multinomial(1)   # (bs * n, 1)
     X_t = X_t.reshape(bs, n)     # (bs, n)

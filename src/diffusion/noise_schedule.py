@@ -162,6 +162,7 @@ class MarginalUniformTransition:
         self.u_y = self.u_y.to(device)
 
         q_x = beta_t * self.u_x + (1 - beta_t) * torch.eye(self.X_classes, device=device).unsqueeze(0)
+        # q_x = self.remove_padding_trasition(q_x)
         # q_e = beta_t * self.u_e + (1 - beta_t) * torch.eye(self.E_classes, device=device).unsqueeze(0)
         
         # Using an identity matrix instead
@@ -169,6 +170,33 @@ class MarginalUniformTransition:
         q_y = beta_t * self.u_y + (1 - beta_t) * torch.eye(self.y_classes, device=device).unsqueeze(0)
 
         return src.utils.PlaceHolder(X=q_x, E=q_e, y=q_y)
+
+
+    def remove_padding_trasition(self, qx):
+        """
+        Modifies the transition matrix tensor `qx` such that:
+        - No class transitions to the last class.
+        - The last class transitions to itself with 100% probability.
+
+        Args:
+            qx (torch.Tensor): Transition matrix of shape (bs, dx, dx)
+
+        Returns:
+            torch.Tensor: Modified transition matrix.
+        """
+
+        # Zero out transitions to the last class (except for itself)
+        qx[:, :, -1] = 0
+
+        # Ensure last class transitions to itself with probability 1
+        qx[:, -1, -1] = 1
+
+        # Normalize row-wise (excluding the last row, which is already valid)
+        row_sums = qx.sum(dim=-1, keepdim=True)
+        row_sums[row_sums == 0] = 1  # Avoid division by zero
+        qx /= row_sums
+
+        return qx
 
     def get_Qt_bar(self, alpha_bar_t, device):
         """ Returns t-step transition matrices for X and E, from step 0 to step t.
@@ -184,7 +212,7 @@ class MarginalUniformTransition:
         self.u_y = self.u_y.to(device)
 
         q_x = alpha_bar_t * torch.eye(self.X_classes, device=device).unsqueeze(0) + (1 - alpha_bar_t) * self.u_x
-        # q_e = alpha_bar_t * torch.eye(self.E_classes, device=device).unsqueeze(0) + (1 - alpha_bar_t) * self.u_e
+        q_e = alpha_bar_t * torch.eye(self.E_classes, device=device).unsqueeze(0) + (1 - alpha_bar_t) * self.u_e
 
         # Identity Matrix for the edges
         q_e = torch.eye(self.E_classes, device=device).unsqueeze(0).expand(alpha_bar_t.size(0), self.E_classes, self.E_classes)

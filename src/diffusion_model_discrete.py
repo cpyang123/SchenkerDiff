@@ -512,19 +512,22 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         # Build the masks
         arange = torch.arange(n_max, device=self.device).unsqueeze(0).expand(batch_size, -1)
         node_mask = arange < n_nodes.unsqueeze(1)
+
+        # Sample a piece, and use the R matrix from that
+
         # Sample noise  -- z has size (n_samples, n_nodes, n_features)
         z_T = diffusion_utils.sample_discrete_feature_noise(limit_dist=self.limit_dist, node_mask=node_mask)
         X, E, y = z_T.X, z_T.E, z_T.y
 
-        # # #### Modifying E to be a chain of nodes:
-        # # Create indices for adjacent nodes (i and i+1).
-        # E = torch.zeros(E.shape,  device=E.device)
-        # indices = torch.arange(E.shape[1]-1)
+        # #### Modifying E to be a chain of nodes:
+        # Create indices for adjacent nodes (i and i+1).
+        E = torch.zeros(E.shape,  device=E.device)
+        indices = torch.arange(E.shape[1]-1)
         
-        # # Set the edge features for the forward connections (node i -> node i+1)
-        # E[:, indices, indices + 1, :] = 1
-        # # Set the edge features for the backward connections (node i+1 -> node i)
-        # E[:, indices + 1, indices, :] = 1
+        # Set the edge features for the forward connections (node i -> node i+1)
+        E[:, indices, indices + 1, :] = 1
+        # Set the edge features for the backward connections (node i+1 -> node i)
+        E[:, indices + 1, indices, :] = 1
 
         assert (E == torch.transpose(E, 1, 2)).all()
         assert number_chain_steps < self.T
@@ -545,7 +548,14 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             sampled_s, discrete_sampled_s = self.sample_p_zs_given_zt(s_norm, t_norm, X, E, y, node_mask)
             X, E, y = sampled_s.X, sampled_s.E, sampled_s.y
 
+            E = torch.zeros(E.shape,  device=E.device)
+            indices = torch.arange(E.shape[1]-1)
             
+            # Set the edge features for the forward connections (node i -> node i+1)
+            E[:, indices, indices + 1, :] = 1
+            # Set the edge features for the backward connections (node i+1 -> node i)
+            E[:, indices + 1, indices, :] = 1
+
 
             # Save the first keep_chain graphs
             write_index = (s_int * number_chain_steps) // self.T
@@ -555,9 +565,10 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         # Sample
         sampled_s = sampled_s.mask(node_mask, collapse=True)
         X, E, y = sampled_s.X, sampled_s.E, sampled_s.y
-        # # # Resetting E to be the super diagonal matrix
+
+        # # # # # Resetting E to be the super diagonal matrix
         E = torch.zeros(E.shape,  device=E.device)
-        indices = torch.arange(E.shape[1]-1)
+        indices = torch.arange(E.shape[1] - 1)
         
         # Set the edge features for the forward connections (node i -> node i+1)
         E[:, indices, indices + 1] = 1

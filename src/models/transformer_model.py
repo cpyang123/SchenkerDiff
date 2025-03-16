@@ -252,7 +252,7 @@ class GraphTransformer(nn.Module):
         self.mlp_out_y = nn.Sequential(nn.Linear(hidden_dims['dy'], hidden_mlp_dims['y']), act_fn_out,
                                        nn.Linear(hidden_mlp_dims['y'], output_dims['y']))
 
-    def forward(self, X, E, y, node_mask):
+    def forward(self, X, E, y, node_mask): # add R Matrix here to represent Rythm 
         bs, n = X.shape[0], X.shape[1]
 
         diag_mask = torch.eye(n)

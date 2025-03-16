@@ -51,12 +51,12 @@ PITCH_CLASS_MAP = {
 #     'M6', 'AA4', 'A8', 'd6', 'dd2', 'dd6'
 # }
 
-SCALE_DEGREE_MAP = {
+SCALE_DEGREE_MAP = [
     'A2', 'm2', 'P8', 'A6',
     'm7', 'M2', 'm6', 'M7',
     'm3', 'M3', 'P5', 'd7',
     'P4', 'M6', 'A4', 'd5'
-}
+]
 SCALE_DEGREE_MAP = {interval: i for i, interval in enumerate(SCALE_DEGREE_MAP)}
 
 DIATONIC_TO_CHROMATIC_INTERVAL = {

@@ -145,13 +145,13 @@ class SchenkerDiffHeteroGraphData(Dataset):
         self.include_depth_edges = include_depth_edges
         self.include_global_nodes = include_global_nodes
         self.dataset_name = dataset_name
-        super(SchenkerDiffHeteroGraphData, self).__init__(root, transform, pre_transform)
+        super(SchenkerDiffHeteroGraphData, self).__init__(root, transform = transform, pre_transform = pre_transform)
         self.data_list = []
 
         for file_name in self.processed_file_names:
             file_path = os.path.join(self.processed_dir, file_name)
             if os.path.isfile(file_path):
-                self.data_list.append(torch.load(file_path), weights_only = False)
+                self.data_list.append(torch.load(file_path, weights_only = False))
             else:
                 print(f"Missing processed file: {file_path}")
         self.root = root
@@ -614,6 +614,8 @@ class SchenkerDiffHeteroGraphData(Dataset):
 
         ground_truth_voice = self.extract_voices(pkl_file, pyscoreparser_notes)
 
+        analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
+
         data_dict = {
             "name": str(xml_file).removesuffix('.xml'),
             "data": hetero_data,
@@ -660,7 +662,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
                     print(f"Processing file {xml_file}")
                 try:
                     self.process_file(xml_file, pkl_file, index, include_depth_edges=self.include_depth_edges)
-                    # analysis_treble, analysis_bass, node_list = load_score(xml_file)
+                    
 
                 except EnharmonicError as e:
                     print(e)

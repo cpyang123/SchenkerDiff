@@ -44,7 +44,7 @@ class HeteroGraphData(Dataset):
         self.include_depth_edges = include_depth_edges
         self.include_global_nodes = include_global_nodes
         self.scale_degree_counter = Counter()
-        super(HeteroGraphData, self).__init__(root, transform, pre_transform)
+        super(HeteroGraphData, self).__init__(root, transform = transform, pre_transform = pre_transform)
         self.data_list = []
 
         for file_name in self.processed_file_names:

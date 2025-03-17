@@ -12,8 +12,6 @@ from src.schenker_gnn.config import *
 
 import numpy as np
 
-import numpy as np
-
 
 def load_model(
         model,
@@ -39,15 +37,15 @@ def load_model(
         latest_reward_file = get_latest_save_file(reward_save_path, "reward")
 
     if latest_gnn_file and latest_lp_treble_file and latest_lp_bass_file and latest_vp_file:
-        model.load_state_dict(torch.load(latest_gnn_file, map_location=device))
-        link_predictor_treble.load_state_dict(torch.load(latest_lp_treble_file, map_location=device))
-        link_predictor_bass.load_state_dict(torch.load(latest_lp_bass_file, map_location=device))
-        voice_predictor.load_state_dict(torch.load(latest_vp_file, map_location=device))
+        model.load_state_dict(torch.load(latest_gnn_file, map_location=device, weights_only=False))
+        link_predictor_treble.load_state_dict(torch.load(latest_lp_treble_file, map_location=device, weights_only=False))
+        link_predictor_bass.load_state_dict(torch.load(latest_lp_bass_file, map_location=device, weights_only=False))
+        voice_predictor.load_state_dict(torch.load(latest_vp_file, map_location=device, weights_only=False))
 
         all_to_device(model, link_predictor_treble, link_predictor_bass, voice_predictor, device=device)
 
         if latest_reward_file:
-            reward_model.load_state_dict(torch.load(latest_reward_file, map_location=device))
+            reward_model.load_state_dict(torch.load(latest_reward_file, map_location=device, weights_only=False))
             reward_model.to(device)
         return model, link_predictor_treble, link_predictor_bass, voice_predictor, reward_model
     else:

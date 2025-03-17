@@ -17,13 +17,15 @@ import music21.converter
 import networkx as nx
 import numpy as np
 import torch
-from torch_geometric.data import Dataset, HeteroData,Data
+from torch_geometric.data import Dataset, Data
 import src.pyScoreParser.score_as_graph as score_graph
 from src.datasets.data_maps import *
 from errors import PickledError
 from src.pyScoreParser.musicxml_parser.mxp import MusicXMLDocument
 from src.pyScoreParser.musicxml_parser.mxp.note import Note
 import torch.nn.functional as F
+
+from src.schenker_gnn.for_diffusion.infer_structure_from_rhythm import load_score, extract_structure_adjacency_matrix
 
 
 TRAIN_NAMES = "train-names.txt"
@@ -43,7 +45,7 @@ class SchenkerGraphDataset(InMemoryDataset):
         self.dataset_name = dataset_name
         self.split = split
         self.num_graphs = 200  # Adjust based on your data
-        self.dataset = HeteroGraphData(root=root, train_names=dataset_name)
+        self.dataset = SchenkerDiffHeteroGraphData(root=root, train_names=dataset_name)
         super().__init__(root, transform, pre_transform, pre_filter)
         self.data, self.slices = torch.load(self.processed_paths[0])
         self.processed_file_names = self.dataset.processed_file_names
@@ -87,11 +89,11 @@ class SchenkerGraphDataModule(AbstractDataModule):
             names = file.readlines()
         names = [line.strip() for line in names if line[0] != "#"]
 
-        datasets = {'train': HeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
+        datasets = {'train': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
                                                  split='train', root=root_path),
-                    'val': HeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
+                    'val': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
                                         split='val', root=root_path),
-                    'test': HeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
+                    'test': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
                                         split='test', root=root_path)}
 
         super().__init__(cfg, datasets)
@@ -121,7 +123,7 @@ NUM_FEATURES = 16
 MAX_LEN = 40
 INCLUDE_GLOBAL_NODES = True
 
-class HeteroGraphData(Dataset):
+class SchenkerDiffHeteroGraphData(Dataset):
     def __init__(self,
                  root,
                  dataset_name = None,
@@ -143,13 +145,13 @@ class HeteroGraphData(Dataset):
         self.include_depth_edges = include_depth_edges
         self.include_global_nodes = include_global_nodes
         self.dataset_name = dataset_name
-        super(HeteroGraphData, self).__init__(root, transform, pre_transform)
+        super(SchenkerDiffHeteroGraphData, self).__init__(root, transform, pre_transform)
         self.data_list = []
 
         for file_name in self.processed_file_names:
             file_path = os.path.join(self.processed_dir, file_name)
             if os.path.isfile(file_path):
-                self.data_list.append(torch.load(file_path))
+                self.data_list.append(torch.load(file_path), weights_only = False)
             else:
                 print(f"Missing processed file: {file_path}")
         self.root = root
@@ -182,7 +184,7 @@ class HeteroGraphData(Dataset):
         one_hot_encoded = np.zeros((len(mapped_pitch), num_class))
         for i, pitch in enumerate(mapped_pitch):
             one_hot_encoded[i, pitch] = 1
-        return HeteroGraphData.to_float_tensor(one_hot_encoded)
+        return SchenkerDiffHeteroGraphData.to_float_tensor(one_hot_encoded)
 
     @staticmethod
     def to_float_tensor(array):
@@ -461,7 +463,7 @@ class HeteroGraphData(Dataset):
             # "midi": np.array([note.pitch[1] for note in pyscoreparser_notes]),
             # "duration": np.array([duration / np.max(durations) for duration in durations]),
             # "offsets": np.array([offset / np.max(offsets) for offset in offsets]),
-            "scale_degrees": HeteroGraphData.get_scale_degrees(pyscoreparser_notes, key_signature)
+            "scale_degrees": SchenkerDiffHeteroGraphData.get_scale_degrees(pyscoreparser_notes, key_signature)
         }
         # node_features["pitch_class"] = HeteroGraphData.one_hot_convert(node_features["pitch_class"], len(PITCH_CLASS_MAP))
         # node_features["metric_strength"] = HeteroGraphData.one_hot_convert(node_features["metric_strength"], 6)
@@ -469,7 +471,7 @@ class HeteroGraphData(Dataset):
         # node_features["midi"] = HeteroGraphData.to_float_tensor(node_features["midi"]).unsqueeze(1)
         # node_features["duration"] = HeteroGraphData.to_float_tensor(node_features["duration"]).unsqueeze(1)
         # node_features["offsets"] = HeteroGraphData.to_float_tensor(node_features["offsets"]).unsqueeze(1)
-        node_features["scale_degrees"] = HeteroGraphData.one_hot_convert(node_features["scale_degrees"], len(SCALE_DEGREE_MAP))
+        node_features["scale_degrees"] = SchenkerDiffHeteroGraphData.one_hot_convert(node_features["scale_degrees"], len(SCALE_DEGREE_MAP))
 
         note_features = torch.cat([feature for feature in node_features.values()], dim=1)
 
@@ -519,7 +521,7 @@ class HeteroGraphData(Dataset):
             if edge_type in edge_indices.keys():
                 edge_indices[edge_type].append(from_to)
 
-        return HeteroGraphData.initialize_edge_indices(hetero_data, edge_indices)
+        return SchenkerDiffHeteroGraphData.initialize_edge_indices(hetero_data, edge_indices)
 
     @staticmethod
     def check_overlapping_notes(pyscoreparser_notes, name):
@@ -579,10 +581,10 @@ class HeteroGraphData(Dataset):
         key_signature = music21_score.analyze('key')
 
         hetero_data = HeteroData()
-        hetero_data, notes_graph = HeteroGraphData.process_file_nodes(
+        hetero_data, notes_graph = SchenkerDiffHeteroGraphData.process_file_nodes(
             hetero_data, pyscoreparser_notes, key_signature, include_global_nodes
         )
-        hetero_data = HeteroGraphData.process_file_edges(
+        hetero_data = SchenkerDiffHeteroGraphData.process_file_edges(
             hetero_data, notes_graph, pyscoreparser_notes, include_depth_edges,
             pkl_file=None, include_global_nodes=include_global_nodes
         )
@@ -602,10 +604,10 @@ class HeteroGraphData(Dataset):
         self.check_overlapping_notes(pyscoreparser_notes, str(xml_file).removesuffix('.xml'))
 
         hetero_data = HeteroData()
-        hetero_data, notes_graph = HeteroGraphData.process_file_nodes(
+        hetero_data, notes_graph = SchenkerDiffHeteroGraphData.process_file_nodes(
             hetero_data, pyscoreparser_notes, key_signature
         )
-        hetero_data = HeteroGraphData.process_file_edges(
+        hetero_data = SchenkerDiffHeteroGraphData.process_file_edges(
             hetero_data, notes_graph, pyscoreparser_notes,
             include_depth_edges=include_depth_edges, pkl_file=pkl_file, include_global_nodes=INCLUDE_GLOBAL_NODES,
         )
@@ -658,6 +660,8 @@ class HeteroGraphData(Dataset):
                     print(f"Processing file {xml_file}")
                 try:
                     self.process_file(xml_file, pkl_file, index, include_depth_edges=self.include_depth_edges)
+                    # analysis_treble, analysis_bass, node_list = load_score(xml_file)
+
                 except EnharmonicError as e:
                     print(e)
                     continue
@@ -697,4 +701,4 @@ if __name__ == "__main__":
         names = file.readlines()
         names = [line.strip() for line in names if line[0] != "#"]
 
-    dataset = HeteroGraphData(root="processed/heterdatacleaned/", train_names=names)
+    dataset = SchenkerDiffHeteroGraphData(root="processed/heterdatacleaned/", train_names=names)

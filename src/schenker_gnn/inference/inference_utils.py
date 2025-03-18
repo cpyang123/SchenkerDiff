@@ -37,15 +37,16 @@ def load_model(
         latest_reward_file = get_latest_save_file(reward_save_path, "reward")
 
     if latest_gnn_file and latest_lp_treble_file and latest_lp_bass_file and latest_vp_file:
-        model.load_state_dict(torch.load(latest_gnn_file, map_location=device, weights_only=False))
-        link_predictor_treble.load_state_dict(torch.load(latest_lp_treble_file, map_location=device, weights_only=False))
-        link_predictor_bass.load_state_dict(torch.load(latest_lp_bass_file, map_location=device, weights_only=False))
-        voice_predictor.load_state_dict(torch.load(latest_vp_file, map_location=device, weights_only=False))
+        # print(torch.load(latest_gnn_file, map_location=device, weights_only=False))
+        model.load_state_dict(torch.load(latest_gnn_file, map_location=device, weights_only=False), strict=False)
+        link_predictor_treble.load_state_dict(torch.load(latest_lp_treble_file, map_location=device, weights_only=False), strict=False)
+        link_predictor_bass.load_state_dict(torch.load(latest_lp_bass_file, map_location=device, weights_only=False), strict=False)
+        voice_predictor.load_state_dict(torch.load(latest_vp_file, map_location=device, weights_only=False), strict=False)
 
         all_to_device(model, link_predictor_treble, link_predictor_bass, voice_predictor, device=device)
 
         if latest_reward_file:
-            reward_model.load_state_dict(torch.load(latest_reward_file, map_location=device, weights_only=False))
+            reward_model.load_state_dict(torch.load(latest_reward_file, map_location=device, weights_only=False), strict=False)
             reward_model.to(device)
         return model, link_predictor_treble, link_predictor_bass, voice_predictor, reward_model
     else:
@@ -56,6 +57,7 @@ def get_latest_save_file(save_path, identifier):
     files = [f for f in os.listdir(save_path) if f.startswith(identifier)]
     files.sort(key=lambda x: os.path.getmtime(os.path.join(save_path, x)), reverse=True)
     latest_file = os.path.join(save_path, files[0]) if files else None
+    # print(latest_file)
     return latest_file
 
 

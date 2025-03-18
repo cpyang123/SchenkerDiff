@@ -23,6 +23,7 @@ from scipy.linalg import eigvalsh
 from scipy.stats import chi2
 from src.analysis.dist_helper import compute_mmd, gaussian_emd, gaussian, emd, gaussian_tv, disc
 from torch_geometric.utils import to_networkx
+from torch_geometric.data import  Data
 import wandb
 
 PRINT_TIME = False
@@ -749,7 +750,7 @@ class SpectreSamplingMetrics(nn.Module):
         for i, batch in enumerate(loader):
             data_list = batch.to_data_list()
             for j, data in enumerate(data_list):
-                networkx_graphs.append(to_networkx(data, node_attrs=None, edge_attrs=None, to_undirected=True,
+                networkx_graphs.append(to_networkx( Data(x=data.x, edge_index=data.edge_index, edge_attr=data.edge_attr, y=torch.zeros([1, 0])), node_attrs=None, edge_attrs=None, to_undirected=True,
                                                    remove_self_loops=True))
         return networkx_graphs
 
@@ -870,7 +871,7 @@ class PlanarSamplingMetrics(SpectreSamplingMetrics):
     def __init__(self, datamodule):
         super().__init__(datamodule=datamodule,
                          compute_emd=False,
-                         metrics_list=['degree', 'clustering', 'orbit', 'spectre', 'planar'])
+                         metrics_list=['degree', 'clustering', 'orbit', 'spectre'])
 
 
 class SBMSamplingMetrics(SpectreSamplingMetrics):

@@ -109,7 +109,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         dense_data = dense_data.mask(node_mask)
         X, E = dense_data.X, dense_data.E
         noisy_data = self.apply_noise(X, E, data.y, node_mask)
-        extra_data = self.compute_extra_data(noisy_data)
+        # extra_data = self.compute_extra_data(noisy_data)
+        extra_data = src.utils.PlaceHolder(X=data.r, E=data.s, y=data.y)
         pred = self.forward(noisy_data, extra_data, node_mask)
         loss = self.train_loss(masked_pred_X=pred.X, masked_pred_E=pred.E, pred_y=pred.y,
                                true_X=X, true_E=E, true_y=data.y,
@@ -162,6 +163,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         dense_data = dense_data.mask(node_mask)
         noisy_data = self.apply_noise(dense_data.X, dense_data.E, data.y, node_mask)
         extra_data = self.compute_extra_data(noisy_data)
+        # extra_data = src.utils.PlaceHolder(X=data.r, E=data.s, y=data.y)
         pred = self.forward(noisy_data, extra_data, node_mask)
         nll = self.compute_val_loss(pred, noisy_data, dense_data.X, dense_data.E, data.y,  node_mask, test=False)
         return {'loss': nll}
@@ -514,6 +516,10 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         node_mask = arange < n_nodes.unsqueeze(1)
 
         # Sample a piece, and use the R matrix from that
+        # Get a random sample from the data
+        # pass through Stephen's script to get the S matrix, and the R matrix through the data processing (process_file_for_GUI)
+        
+
 
         # Sample noise  -- z has size (n_samples, n_nodes, n_features)
         z_T = diffusion_utils.sample_discrete_feature_noise(limit_dist=self.limit_dist, node_mask=node_mask)

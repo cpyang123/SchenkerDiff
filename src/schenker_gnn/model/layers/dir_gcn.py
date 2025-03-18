@@ -2,6 +2,7 @@ import copy
 
 import torch
 from torch_geometric.nn.conv import MessagePassing
+from src.schenker_gnn.config import *
 
 
 class DirGNNConv(torch.nn.Module):
@@ -58,6 +59,8 @@ class DirGNNConv(torch.nn.Module):
 
     def forward(self, x, edge_index, edge_attr=None):
         """"""  # noqa: D419
+        edge_index = edge_index.to(DEVICE)
+        edge_attr = edge_attr.to(DEVICE)
         x_in = self.conv_in(x, edge_index, edge_weight=edge_attr)
         x_out = self.conv_out(x, edge_index.flip([0]), edge_weight=edge_attr)
 

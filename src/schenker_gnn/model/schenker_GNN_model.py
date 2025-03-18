@@ -89,6 +89,7 @@ class SchenkerGNN(torch.nn.Module):
 
     def forward(self, data, embedding_method=EMBEDDING_METHOD, mixed=True):
         x = data.x_dict
+        x['note'] = x['note'].to(DEVICE)
         edge_index_dict = data.edge_index_dict
         attribute_dict = {edge_type: data[edge_type].edge_attr for edge_type in data.edge_types}
 

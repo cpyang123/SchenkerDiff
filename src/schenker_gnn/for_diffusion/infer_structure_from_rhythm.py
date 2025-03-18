@@ -78,7 +78,7 @@ def load_all_models(include_reward=False):
     reward_save_path = None
     if include_reward:
         reward_save_path = f"saved_models/reward_emb{REWARD_EMB_DIM}_hidden{REWARD_HIDDEN_DIM}_out{GNN_OUTPUT_DIM}_layers{REWARD_NUM_LAYERS}"
-
+    # print(DEVICE)
     gnn, link_predictor_treble, link_predictor_bass, voice_predictor, reward_predictor = load_model(
         gnn,
         link_predictor_treble,
@@ -104,7 +104,7 @@ def predict_link_probabilities_visualization(gnn, lp_treble, lp_bass, voice_mode
 
     data = HeteroGraphData.process_file_for_GUI(xml_filename, include_global_nodes=INCLUDE_GLOBAL_NODES)
     name = data['name']
-    graph = data['data']
+    graph = data['data'].to(DEVICE)
     if ABLATIONS['voice_given']:
         voice = data['voice']
     else:
@@ -159,7 +159,7 @@ def load_graph_edges(pyscoreparser_notes):
         for global_i in range(len(pyscoreparser_notes), len(pyscoreparser_notes) + 4):
             edge_index[0].append(i)
             edge_index[1].append(global_i)
-    edge_index = torch.tensor(edge_index)
+    edge_index = torch.tensor(edge_index, device=DEVICE)
     return edge_index
 
 
@@ -303,7 +303,39 @@ def extract_structure_adjacency_matrix(analysis_treble, analysis_bass, node_list
         if adjacency_mat[edge[0], edge[1]] == 1: continue
         adjacency_mat[edge[0], edge[1]] += 1
     adjacency_mat = adjacency_mat + adjacency_mat.T
-    print(adjacency_mat)
+    return adjacency_mat
+
+def extract_structure_sparse(analysis_treble, analysis_bass, node_list):
+    max_idx = max(i for l in node_list for i in l)
+    n = max_idx - 3
+    directed_edges = {}
+
+    for edge in analysis_treble:
+        if edge[0] >= n or edge[1] >= n:
+            continue
+        key = (edge[0], edge[1])
+        directed_edges[key] = directed_edges.get(key, 0) + 1
+
+    for edge in analysis_bass:
+        if edge[0] >= n or edge[1] >= n:
+            continue
+        key = (edge[0], edge[1])
+        # Only add bass edge if there hasn't already been a treble edge recorded.
+        if directed_edges.get(key, 0) == 1:
+            continue
+        directed_edges[key] = directed_edges.get(key, 0) + 1
+
+    edge_index_list = []
+    edge_attr_list = []
+    for (i, j), weight in directed_edges.items():
+        if weight > 0:
+            edge_index_list.append([i, j])
+            edge_attr_list.append(weight)
+
+    edge_index = torch.tensor(edge_index_list, dtype=torch.long).t().contiguous()
+    edge_attr = torch.tensor(edge_attr_list, dtype=torch.float)
+
+    return edge_index, edge_attr
 
 
 if __name__ == "__main__":

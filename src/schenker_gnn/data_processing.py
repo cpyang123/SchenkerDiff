@@ -12,7 +12,7 @@ import torch
 from torch_geometric.data import Dataset, HeteroData
 
 import src.pyScoreParser.score_as_graph as score_graph
-from src.schenker_gnn.config import INTERVAL_EDGES, NUM_DEPTHS, NUM_FEATURES, INCLUDE_GLOBAL_NODES, ABLATIONS
+from src.schenker_gnn.config import INTERVAL_EDGES, NUM_DEPTHS, NUM_FEATURES, INCLUDE_GLOBAL_NODES, ABLATIONS, DEVICE
 from src.schenker_gnn.data_maps import *
 from errors import PickledError
 from src.pyScoreParser.musicxml_parser.mxp import MusicXMLDocument

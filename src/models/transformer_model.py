@@ -226,7 +226,7 @@ class GraphTransformer(nn.Module):
         self.out_dim_E = output_dims['E']
         self.out_dim_y = output_dims['y']
 
-        self.mlp_in_X = nn.Sequential(nn.Linear(input_dims['X'], hidden_mlp_dims['X']), act_fn_in,
+        self.mlp_in_X = nn.Sequential(nn.Linear(input_dims['X'] , hidden_mlp_dims['X']), act_fn_in,
                                       nn.Linear(hidden_mlp_dims['X'], hidden_dims['dx']), act_fn_in)
 
         self.mlp_in_E = nn.Sequential(nn.Linear(input_dims['E'], hidden_mlp_dims['E']), act_fn_in,
@@ -234,6 +234,11 @@ class GraphTransformer(nn.Module):
 
         self.mlp_in_y = nn.Sequential(nn.Linear(input_dims['y'], hidden_mlp_dims['y']), act_fn_in,
                                       nn.Linear(hidden_mlp_dims['y'], hidden_dims['dy']), act_fn_in)
+        
+        self.mlp_in_r = nn.Sequential(nn.Linear(input_dims['r'], hidden_mlp_dims['r']), act_fn_in,
+                                      nn.Linear(hidden_mlp_dims['r'], hidden_dims['dr']), act_fn_in)
+        
+        self.mlp_in_X_r = nn.Sequential(nn.Linear(hidden_dims['dr'] +  hidden_dims['dx'], hidden_dims['dx']), act_fn_in)
 
         self.tf_layers = nn.ModuleList([XEyTransformerLayer(dx=hidden_dims['dx'],
                                                             de=hidden_dims['de'],
@@ -252,7 +257,7 @@ class GraphTransformer(nn.Module):
         self.mlp_out_y = nn.Sequential(nn.Linear(hidden_dims['dy'], hidden_mlp_dims['y']), act_fn_out,
                                        nn.Linear(hidden_mlp_dims['y'], output_dims['y']))
 
-    def forward(self, X, E, y, node_mask): # add R Matrix here to represent Rythm 
+    def forward(self, X, E, r, y, node_mask): # add R Matrix here to represent Rythm 
         bs, n = X.shape[0], X.shape[1]
 
         diag_mask = torch.eye(n)
@@ -263,9 +268,12 @@ class GraphTransformer(nn.Module):
         E_to_out = E[..., :self.out_dim_E]
         y_to_out = y[..., :self.out_dim_y]
 
+        # X += self.mlp_in_r(r)
+        X_r = torch.cat((self.mlp_in_X(X), self.mlp_in_r(r)), dim=-1)
+
         new_E = self.mlp_in_E(E)
         new_E = (new_E + new_E.transpose(1, 2)) / 2
-        after_in = src.utils.PlaceHolder(X=self.mlp_in_X(X), E=new_E, y=self.mlp_in_y(y)).mask(node_mask)
+        after_in = src.utils.PlaceHolder(X=self.mlp_in_X_r(X_r), E=new_E, y=self.mlp_in_y(y)).mask(node_mask)
         X, E, y = after_in.X, after_in.E, after_in.y
 
         for layer in self.tf_layers:

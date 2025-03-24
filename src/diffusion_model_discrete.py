@@ -5,6 +5,9 @@ import pytorch_lightning as pl
 import time
 import wandb
 import os
+import random
+import pickle
+import numpy as np
 
 from src.models.transformer_model import GraphTransformer
 from src.diffusion.noise_schedule import DiscreteUniformTransition, PredefinedNoiseScheduleDiscrete,\
@@ -13,7 +16,24 @@ from src.diffusion import diffusion_utils
 from src.metrics.train_metrics import TrainLossDiscrete
 from src.metrics.abstract_metrics import SumExceptBatchMetric, SumExceptBatchKL, NLL
 import src.utils
+from torch_geometric.utils import  to_dense_batch
+from src.datasets.schenker_dataset import SchenkerDiffHeteroGraphData
+from src.schenker_gnn.for_diffusion.infer_structure_from_rhythm import load_score, extract_structure_sparse
 
+from src.schenker_gnn.config import DEVICE
+
+
+class CustomUnpickler(pickle.Unpickler):
+    def persistent_load(self, pid):
+        # Here you can implement logic to handle the persistent id.
+        # For instance, if you don't need to resolve external references,
+        # you can simply return the pid or raise an informative error.
+        # In this example, we'll simply return pid.
+        return None
+
+def load_pickle_with_persistent(path):
+    with open(path, 'rb') as f:
+        return CustomUnpickler(f).load()
 
 class DiscreteDenoisingDiffusion(pl.LightningModule):
     def __init__(self, cfg, dataset_infos, train_metrics, sampling_metrics, visualization_tools, extra_features,
@@ -32,9 +52,11 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         self.Xdim = input_dims['X']
         self.Edim = input_dims['E']
         self.ydim = input_dims['y']
+        self.rdim = input_dims['r']
         self.Xdim_output = output_dims['X']
         self.Edim_output = output_dims['E']
         self.ydim_output = output_dims['y']
+        self.rdim_output = output_dims['r']
         self.node_dist = nodes_dist
 
         self.dataset_info = dataset_infos
@@ -109,9 +131,11 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         dense_data = dense_data.mask(node_mask)
         X, E = dense_data.X, dense_data.E
         noisy_data = self.apply_noise(X, E, data.y, node_mask)
-        # extra_data = self.compute_extra_data(noisy_data)
-        extra_data = src.utils.PlaceHolder(X=data.r, E=data.s, y=data.y)
-        pred = self.forward(noisy_data, extra_data, node_mask)
+        extra_data = self.compute_extra_data(noisy_data)
+        # extra_data = src.utils.PlaceHolder(X=data.r, E=data.s, y=data.y)
+        dense_r, r_mask = to_dense_batch(data.r, data.batch) 
+        # extra_data.X = dense_r 
+        pred = self.forward(noisy_data, extra_data, dense_r, node_mask)
         loss = self.train_loss(masked_pred_X=pred.X, masked_pred_E=pred.E, pred_y=pred.y,
                                true_X=X, true_E=E, true_y=data.y,
                                log=i % self.log_every_steps == 0)
@@ -164,8 +188,9 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         noisy_data = self.apply_noise(dense_data.X, dense_data.E, data.y, node_mask)
         extra_data = self.compute_extra_data(noisy_data)
         # extra_data = src.utils.PlaceHolder(X=data.r, E=data.s, y=data.y)
-        pred = self.forward(noisy_data, extra_data, node_mask)
-        nll = self.compute_val_loss(pred, noisy_data, dense_data.X, dense_data.E, data.y,  node_mask, test=False)
+        dense_r, r_mask = to_dense_batch(data.r, data.batch) 
+        pred = self.forward(noisy_data, extra_data, dense_r, node_mask)
+        nll = self.compute_val_loss(pred, noisy_data, dense_data.X, dense_data.E, dense_r, data.y,  node_mask, test=False)
         return {'loss': nll}
 
     def on_validation_epoch_end(self) -> None:
@@ -234,8 +259,10 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         dense_data = dense_data.mask(node_mask)
         noisy_data = self.apply_noise(dense_data.X, dense_data.E, data.y, node_mask)
         extra_data = self.compute_extra_data(noisy_data)
-        pred = self.forward(noisy_data, extra_data, node_mask)
-        nll = self.compute_val_loss(pred, noisy_data, dense_data.X, dense_data.E, data.y, node_mask, test=True)
+        dense_r, r_mask = to_dense_batch(data.r, data.batch) 
+        # extra_data.X = dense_r 
+        pred = self.forward(noisy_data, extra_data, dense_r, node_mask)
+        nll = self.compute_val_loss(pred, noisy_data, dense_data.X, dense_data.E, dense_r, data.y, node_mask, test=True)
         return {'loss': nll}
 
     def on_test_epoch_end(self) -> None:
@@ -297,6 +324,14 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                     for bond in bond_list:
                         f.write(f"{int(bond)} ")
                     f.write("\n")
+                f.write("R: \n")
+                for r_list in item[2]:
+                    for r in r_list:
+                        f.write(f"{r} ")
+                    f.write("\n")
+                for name in item[3]:
+                    f.write(name)
+                f.write("\n")
                 f.write("\n")
         self.print("Generated graphs Saved. Computing sampling metrics...")
         self.sampling_metrics(samples, self.name, self.current_epoch, self.val_counter, test=True, local_rank=self.local_rank)
@@ -368,7 +403,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         kl_e = (self.test_E_kl if test else self.val_E_kl)(prob_true.E, torch.log(prob_pred.E))
         return self.T * (kl_x + kl_e)
 
-    def reconstruction_logp(self, t, X, E, node_mask):
+    def reconstruction_logp(self, t, X, E, r, node_mask):
         # Compute noise values for t = 0.
         t_zeros = torch.zeros_like(t)
         beta_0 = self.noise_schedule(t_zeros)
@@ -390,7 +425,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         noisy_data = {'X_t': sampled_0.X, 'E_t': sampled_0.E, 'y_t': sampled_0.y, 'node_mask': node_mask,
                       't': torch.zeros(X0.shape[0], 1).type_as(y0)}
         extra_data = self.compute_extra_data(noisy_data)
-        pred0 = self.forward(noisy_data, extra_data, node_mask)
+        pred0 = self.forward(noisy_data, extra_data, r, node_mask)
 
         # Normalize predictions
         probX0 = F.softmax(pred0.X, dim=-1)
@@ -444,11 +479,11 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                       'alpha_t_bar': alpha_t_bar, 'X_t': z_t.X, 'E_t': z_t.E, 'y_t': z_t.y, 'node_mask': node_mask}
         return noisy_data
 
-    def compute_val_loss(self, pred, noisy_data, X, E, y, node_mask, test=False):
+    def compute_val_loss(self, pred, noisy_data, X, E, r, y, node_mask, test=False):
         """Computes an estimator for the variational lower bound.
            pred: (batch_size, n, total_features)
            noisy_data: dict
-           X, E, y : (bs, n, dx),  (bs, n, n, de), (bs, dy)
+           X, E, r, y : (bs, n, dx),  (bs, n, n, de), (bs, n, dr), (bs, dy)
            node_mask : (bs, n)
            Output: nll (size 1)
        """
@@ -466,7 +501,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
         # 4. Reconstruction loss
         # Compute L0 term : -log p (X, E, y | z_0) = reconstruction loss
-        prob0 = self.reconstruction_logp(t, X, E, node_mask)
+        prob0 = self.reconstruction_logp(t, X, E, r, node_mask)
 
         loss_term_0 = self.val_X_logp(X * prob0.X.log()) + self.val_E_logp(E * prob0.E.log())
 
@@ -477,19 +512,22 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         # Update NLL metric object and return batch nll
         nll = (self.test_nll if test else self.val_nll)(nlls)        # Average over the batch
 
+        accuracy_X = (pred.X == X).float().mean()
+
         if wandb.run:
             wandb.log({"kl prior": kl_prior.mean(),
                        "Estimator loss terms": loss_all_t.mean(),
                        "log_pn": log_pN.mean(),
                        "loss_term_0": loss_term_0,
+                       "X accuracy": accuracy_X,
                        'batch_test_nll' if test else 'val_nll': nll}, commit=False)
         return nll
 
-    def forward(self, noisy_data, extra_data, node_mask):
+    def forward(self, noisy_data, extra_data, rhythmic_data, node_mask):
         X = torch.cat((noisy_data['X_t'], extra_data.X), dim=2).float()
         E = torch.cat((noisy_data['E_t'], extra_data.E), dim=3).float()
         y = torch.hstack((noisy_data['y_t'], extra_data.y)).float()
-        return self.model(X, E, y, node_mask)
+        return self.model(X, E, rhythmic_data, y, node_mask)
 
     @torch.no_grad()
     def sample_batch(self, batch_id: int, batch_size: int, keep_chain: int, number_chain_steps: int,
@@ -503,6 +541,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         :param keep_chain_steps: number of timesteps to save for each chain
         :return: molecule_list. Each element of this list is a tuple (atom_types, charges, positions)
         """
+        E, r, names, n_nodes_list = self.sample_r_E(batch_size)
+        num_nodes = torch.tensor([int(x) for x in n_nodes_list]).to(self.device)
         if num_nodes is None:
             n_nodes = self.node_dist.sample_n(batch_size, self.device)
         elif type(num_nodes) == int:
@@ -518,22 +558,16 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         # Sample a piece, and use the R matrix from that
         # Get a random sample from the data
         # pass through Stephen's script to get the S matrix, and the R matrix through the data processing (process_file_for_GUI)
-        
-
 
         # Sample noise  -- z has size (n_samples, n_nodes, n_features)
         z_T = diffusion_utils.sample_discrete_feature_noise(limit_dist=self.limit_dist, node_mask=node_mask)
-        X, E, y = z_T.X, z_T.E, z_T.y
-
-        # #### Modifying E to be a chain of nodes:
-        # Create indices for adjacent nodes (i and i+1).
-        E = torch.zeros(E.shape,  device=E.device)
-        indices = torch.arange(E.shape[1]-1)
+        X, _, y = z_T.X, z_T.E, z_T.y
         
-        # Set the edge features for the forward connections (node i -> node i+1)
-        E[:, indices, indices + 1, :] = 1
-        # Set the edge features for the backward connections (node i+1 -> node i)
-        E[:, indices + 1, indices, :] = 1
+        E_transpose = E.permute(0, 2, 1, 3)  # Shape remains (bs, n_nodes, n_nodes, 2)
+
+        # Symmetrize using max operation (ensures strongest connection remains)
+        E = torch.maximum(E, E_transpose).to(DEVICE)     
+        r = r.to(DEVICE)
 
         assert (E == torch.transpose(E, 1, 2)).all()
         assert number_chain_steps < self.T
@@ -551,36 +585,20 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             t_norm = t_array / self.T
 
             # Sample z_s
-            sampled_s, discrete_sampled_s = self.sample_p_zs_given_zt(s_norm, t_norm, X, E, y, node_mask)
-            X, E, y = sampled_s.X, sampled_s.E, sampled_s.y
+            sampled_s, discrete_sampled_s = self.sample_p_zs_given_zt(s_norm, t_norm, X, E, r, y, node_mask)
+            X, _, y = sampled_s.X, sampled_s.E, sampled_s.y
 
-            E = torch.zeros(E.shape,  device=E.device)
-            indices = torch.arange(E.shape[1]-1)
-            
-            # Set the edge features for the forward connections (node i -> node i+1)
-            E[:, indices, indices + 1, :] = 1
-            # Set the edge features for the backward connections (node i+1 -> node i)
-            E[:, indices + 1, indices, :] = 1
-
-
+            discrete_sampled_s_E, _ = self.apply_node_mask_E_r(E,r, node_mask)
             # Save the first keep_chain graphs
             write_index = (s_int * number_chain_steps) // self.T
             chain_X[write_index] = discrete_sampled_s.X[:keep_chain]
-            chain_E[write_index] = discrete_sampled_s.E[:keep_chain]
+            chain_E[write_index] = discrete_sampled_s_E[:keep_chain]
 
         # Sample
         sampled_s = sampled_s.mask(node_mask, collapse=True)
-        X, E, y = sampled_s.X, sampled_s.E, sampled_s.y
+        X, _, y = sampled_s.X, sampled_s.E, sampled_s.y
 
-        # # # # # Resetting E to be the super diagonal matrix
-        E = torch.zeros(E.shape,  device=E.device)
-        indices = torch.arange(E.shape[1] - 1)
-        
-        # Set the edge features for the forward connections (node i -> node i+1)
-        E[:, indices, indices + 1] = 1
-        # Set the edge features for the backward connections (node i+1 -> node i)
-        E[:, indices + 1, indices] = 1
-
+        E, _ = self.apply_node_mask_E_r(E,r, node_mask)
 
         # Prepare the chain for saving
         if keep_chain > 0:
@@ -603,7 +621,9 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             n = n_nodes[i]
             atom_types = X[i, :n].cpu()
             edge_types = E[i, :n, :n].cpu()
-            molecule_list.append([atom_types, edge_types])
+            rhythm_types = r[i, :n, :].cpu()
+            sample_names = names[i]
+            molecule_list.append([atom_types, edge_types, rhythm_types, sample_names])
 
         # Visualize chains
         if self.visualization_tools is not None:
@@ -629,8 +649,152 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             self.print("Done.")
 
         return molecule_list
+    
+    @staticmethod
+    def apply_node_mask_E_r(E, r, node_mask):
+        """
+        Applies a node mask to both the adjacency tensor E and the node feature tensor r.
+        
+        Parameters:
+            E (torch.Tensor): Adjacency tensor of shape (batch_size, n_nodes, n_nodes, 2).
+                            Represents edge attributes between nodes.
+            r (torch.Tensor): Node feature tensor of shape (batch_size, n_nodes, dr).
+            node_mask (torch.Tensor): Boolean tensor of shape (batch_size, n_nodes) where True 
+                                    indicates a valid node and False an invalid/padded node.
+        
+        Returns:
+            E_masked (torch.Tensor): Masked adjacency tensor where an edge is retained only if both 
+                                    its source and target nodes are valid. Shape remains 
+                                    (batch_size, n_nodes, n_nodes, 2).
+            r_masked (torch.Tensor): Masked node features where invalid nodes are zeroed out.
+                                    Shape remains (batch_size, n_nodes, dr).
+        
+        How it works:
+            - For r, the mask is expanded to match the last dimension (dr) and multiplied elementwise.
+            - For E, the mask is applied to both the row and column dimensions. That is, for each batch sample,
+            an edge (i,j) is kept only if both node i and node j are valid (i.e., their mask values are True).
+        """
+        r_mask = node_mask.unsqueeze(-1)          # bs, n, 1
+        e_mask1 = r_mask.unsqueeze(2)             # bs, n, 1, 1
+        e_mask2 = r_mask.unsqueeze(1)  
 
-    def sample_p_zs_given_zt(self, s, t, X_t, E_t, y_t, node_mask):
+        r_out = torch.argmax(r, dim=-1)
+        E_out = torch.argmax(E, dim=-1)
+
+        r_out[node_mask == 0] = - 1
+        E_out[(e_mask1 * e_mask2).squeeze(-1) == 0] = - 1
+        
+        return E_out, r_out
+    
+    @staticmethod
+    def sample_r_E(batch_size):
+        """
+        Samples `batch_size` random pickle files from the directory 
+        where i is a random integer between 0 and 1080. Each pickle file contains a dictionary 
+        that is converted to a PyG Data object using the pre-defined function `hetero_to_data`.
+        
+        The PyG Data object is expected to have at least the following attributes:
+        - x: Tensor of node features with shape (num_nodes, feature_dim)
+        - edge_index: LongTensor with shape (2, num_edges)
+        - edge_attr: Tensor with shape (num_edges, 2) representing edge attributes
+        - r: Tensor with shape (num_nodes, dr) representing additional node-level features
+        
+        For each sample, the function creates:
+        - An adjacency tensor E_sample of shape (n_nodes, n_nodes, 2) where each edge's attribute 
+            is placed at the corresponding (u, v) location. If the original graph has fewer than 
+            `n_nodes` nodes, the tensors are padded with zeros; if it has more, they are truncated.
+        - A node feature tensor r_sample of shape (n_nodes, dr) similarly padded or truncated.
+        
+        Finally, the function stacks these into:
+        - E_tensor: Tensor of shape (batch_size, n_nodes, n_nodes, 2)
+        - r_tensor: Tensor of shape (batch_size, n_nodes, dr)
+        
+        Returns:
+            E_tensor, r_tensor
+        """
+        E_list = []
+        r_list = []
+        name_list = []
+        node_sizes = []
+
+        # get samples from OOS distribution
+        np.random.seed(42)
+        n_samples = 4200
+
+        # Randomly select 90 indices for the test set
+        test_indices = np.random.choice(n_samples, 150, replace=False)
+        
+        for _ in range(batch_size):
+            # Select a random index between 0 and 1080 (inclusive)
+            
+            idx = random.choice(test_indices)
+            file_path = f"../../../SchenkerDiff/data/schenker/processed/heterdatacleaned/processed/{idx}_processed.pt"
+            
+            # Load the pickle file containing a dictionary
+            data_dict = torch.load(file_path)
+            
+            # Convert dictionary to a PyG Data object using the provided function
+            data = SchenkerDiffHeteroGraphData.hetero_to_data(data_dict)
+            
+            # Determine the actual number of nodes in the current sample
+            m = data.x.shape[0]
+            
+            
+            # Initialize an adjacency tensor for this sample
+            E_sample = torch.zeros((m, m, 3))
+            # Fill in the edge attributes: iterate over each edge
+            for i in range(data.edge_index.shape[1]):
+                u = data.edge_index[0, i].item()
+                v = data.edge_index[1, i].item()
+                # Only consider nodes within the allowed range (pad/truncate as needed)
+                if u < m and v < m:
+                    E_sample[u, v, :] = data.edge_attr[i, :]
+                    
+            # Process the r tensor (node-level additional features)
+            dr = data.r.shape[1]  # feature dimension of r
+            r_sample = torch.zeros((m, dr))
+            # Copy available node features; pad with zeros if necessary or truncate if too many nodes
+            r_sample[:m, :] = data.r[:m, :]
+            
+            # Append this sample's results to the lists
+            E_list.append(E_sample)
+            r_list.append(r_sample)
+            name_list.append(data_dict['name'])
+            node_sizes.append(m)
+        
+        # Stack all samples to form the batch tensors
+        # Determine the maximum number of nodes in the batch
+        max_nodes = max(tensor.shape[0] for tensor in r_list)
+
+        # Pad the E_list tensors to shape (max_nodes, max_nodes, 3)
+        E_padded = []
+        for e in E_list:
+            n = e.shape[0]
+            # F.pad expects pad in the format: (pad_last_dim_left, pad_last_dim_right,
+            # pad_second_last_dim_left, pad_second_last_dim_right, ...)
+            # For a tensor of shape (n, n, 3): pad last dimension (3) with (0,0),
+            # second dimension with (0, max_nodes-n), and first dimension with (0, max_nodes-n).
+            pad_amount = (0, 0, 0, max_nodes - n, 0, max_nodes - n)
+            E_padded.append(F.pad(e, pad_amount))
+
+        # Stack the padded tensors along a new batch dimension
+        E_tensor = torch.stack(E_padded, dim=0)  # Shape: (batch_size, max_nodes, max_nodes, 3)
+
+        # Pad the r_list tensors to shape (max_nodes, dr)
+        r_padded = []
+        for r in r_list:
+            n = r.shape[0]
+            # For a tensor of shape (n, dr), pad the first dimension with (0, max_nodes-n)
+            pad_amount = (0, 0, 0, max_nodes - n)
+            r_padded.append(F.pad(r, pad_amount))
+
+        # Stack the padded tensors along the batch dimension
+        r_tensor = torch.stack(r_padded, dim=0)  # Shape: (batch_size, max_nodes, dr)
+        
+        return E_tensor, r_tensor, name_list, node_sizes
+
+
+    def sample_p_zs_given_zt(self, s, t, X_t, E_t, r, y_t, node_mask):
         """Samples from zs ~ p(zs | zt). Only used during sampling.
            if last_step, return the graph prediction as well"""
         bs, n, dxs = X_t.shape
@@ -646,7 +810,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         # Neural net predictions
         noisy_data = {'X_t': X_t, 'E_t': E_t, 'y_t': y_t, 't': t, 'node_mask': node_mask}
         extra_data = self.compute_extra_data(noisy_data)
-        pred = self.forward(noisy_data, extra_data, node_mask)
+        pred = self.forward(noisy_data, extra_data, r, node_mask)
 
         # Normalize predictions
         pred_X = F.softmax(pred.X, dim=-1)               # bs, n, d0

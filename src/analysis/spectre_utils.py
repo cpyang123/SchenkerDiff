@@ -764,7 +764,7 @@ class SpectreSamplingMetrics(nn.Module):
         if local_rank == 0:
             print("Building networkx graphs...")
         for graph in generated_graphs:
-            node_types, edge_types = graph
+            node_types, edge_types, _, _ = graph
             A = edge_types.bool().cpu().numpy()
             adjacency_matrices.append(A)
             nx_graph = nx.from_numpy_array(A)

@@ -7,7 +7,7 @@ import torch_geometric.utils
 from torch_geometric.data import InMemoryDataset, download_url, HeteroData
 
 from src.datasets.abstract_dataset import AbstractDataModule, AbstractDatasetInfos
-
+import concurrent.futures
 import glob
 import pickle
 from copy import deepcopy
@@ -64,9 +64,18 @@ class SchenkerGraphDataset(InMemoryDataset):
 
     @property
     def processed_file_names(self):
+        np.random.seed(42)
+        n_samples = 4200
+
+        # Randomly select 90 indices for the test set
+        test_indices = np.random.choice(n_samples, 150, replace=False)
+
         if self.test_mode:
-            return [f'{i}_processed.pt' for i in range(90)]
-        return [f'{i}_processed.pt' for i in range(1085)]
+            return [f'{i}_processed.pt' for i in test_indices]
+
+        # For training, use the complement of the test indices
+        train_indices = np.setdiff1d(np.arange(n_samples), test_indices)
+        return [f'{i}_processed.pt' for i in train_indices]
 
     def download(self):
         # If data is already prepared locally, you can skip this
@@ -88,12 +97,18 @@ class SchenkerGraphDataModule(AbstractDataModule):
             names = file.readlines()
         names = [line.strip() for line in names if line[0] != "#"]
 
+        with open(os.path.join(root_path, TRAIN_NAMES), "r") as file:
+            names = file.readlines()
+        names = [line.strip() for line in names if line[0] != "#"]
+
         datasets = {'train': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
                                                  split='train', root=root_path),
                     'val': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
                                         split='val', root=root_path),
                     'test': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
                                         split='test', root=root_path)}
+
+        
 
         super().__init__(cfg, datasets)
         self.inner = self.train_dataset
@@ -166,7 +181,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
         return self.len()
 
     def get(self, idx):
-        r_data = self.hetero_to_data(self, self.data_list[idx])
+        r_data = self.hetero_to_data(self.data_list[idx])
         return r_data
 
     def __getitem__(self, idx):
@@ -174,9 +189,18 @@ class SchenkerDiffHeteroGraphData(Dataset):
 
     @property
     def processed_file_names(self):
+        np.random.seed(42)
+        n_samples = 4200
+
+        # Randomly select 90 indices for the test set
+        test_indices = np.random.choice(n_samples, 150, replace=False)
+
         if self.test_mode:
-            return [f'{i}_processed.pt' for i in range(90)]
-        return [f'{i}_processed.pt' for i in range(1082)]
+            return [f'{i}_processed.pt' for i in test_indices]
+
+        # For training, use the complement of the test indices
+        train_indices = np.setdiff1d(np.arange(n_samples), test_indices)
+        return [f'{i}_processed.pt' for i in train_indices]
 
     @staticmethod
     def one_hot_convert(mapped_pitch, num_class):
@@ -222,14 +246,23 @@ class SchenkerDiffHeteroGraphData(Dataset):
         return x
     
     @staticmethod
-    def hetero_to_data(self, hetero_dict):
+    def hetero_to_data(hetero_dict):
         # Initialize
         # x = self.resize_tensor(hetero_data['note']['x'], target_rows = MAX_LEN, target_cols = NUM_FEATURES + 1)
         hetero_data = hetero_dict['data']
         x =  hetero_data['note']['x']
         r = hetero_data['note']['r']
-        s_attr = hetero_dict['s_edge_attr']
-        s_inx = hetero_dict['s_edge_index']
+        if hetero_dict['s_edge_attr'] is None or hetero_dict['s_edge_attr'] == []:
+            s_attr = torch.empty((0, 1))
+        else:
+            s_attr = hetero_dict['s_edge_attr'].unsqueeze(-1)
+
+        # For s_edge_index: if None, create an empty tensor.
+        # Often, edge indices are expected to have shape (2, num_edges), so we use (2, 0) with type long.
+        if hetero_dict['s_edge_index'] is None or hetero_dict['s_edge_attr'] == []:
+            s_inx = torch.empty((2, 0), dtype=torch.long)
+        else:
+            s_inx = hetero_dict['s_edge_index']
         
         edge_indices = []
         edge_attrs = []
@@ -251,14 +284,74 @@ class SchenkerDiffHeteroGraphData(Dataset):
         edge_indices = torch.cat(edge_indices, dim=1)  
         edge_attrs = torch.cat(edge_attrs, dim=0) 
         # padded_edge_attrs = F.pad(edge_attrs, (0, 30 - edge_attrs.size()[1]), mode='constant', value=0)
-        padded_edge_attrs = edge_attrs
+        # padded_edge_attrs = edge_attrs
         
         assert torch.all((x == 0) | (x == 1)), "Tensor contains values other than 0 or 1."
+
         
-        data = Data(x=x, edge_index=edge_indices, edge_attr=padded_edge_attrs, \
-                     y=torch.zeros([1, 0]), r = r, s_attr = s_attr, s_inx = s_inx)
+        if 'asap-dataset' in hetero_data['name']:
+            data = Data(x=x, edge_index=edge_indices, edge_attr=edge_attrs, \
+                     y=torch.zeros([1, 0]), r = r)
+        else: 
+            final_indicies, final_attrs = SchenkerDiffHeteroGraphData.concat_adjacencies(edge_indices, edge_attrs, s_inx,s_attr)
+
+            data = Data(x=x, edge_index=final_indicies, edge_attr=final_attrs, \
+                        y=torch.zeros([1, 0]), r = r)
 
         return data
+
+    @staticmethod
+    def concat_adjacencies(edge_index1, edge_attr1, edge_index2, edge_attr2):
+        """
+        Concatenates two sets of edges and assigns a new two-class one-hot encoding.
+
+        Parameters:
+        edge_index1 (Tensor): Tensor of shape [2, num_edges1] for the first adjacency.
+        edge_attr1 (Tensor): Tensor of shape [num_edges1, ?]. (Ignored, as only one class is present.)
+        edge_index2 (Tensor): Tensor of shape [2, num_edges2] for the second adjacency.
+        edge_attr2 (Tensor): Tensor of shape [num_edges2, ?]. (Ignored, as only one class is present.)
+
+        Returns:
+        combined_edge_index (Tensor): Concatenated edge indices tensor of shape [2, num_edges1 + num_edges2].
+        combined_edge_attr (Tensor): Concatenated edge attributes tensor of shape [num_edges1 + num_edges2, 2],
+                                    where edges from the first set are encoded as [0, 1, 0] and from the
+                                    second set as [0, 0, 1].
+        """
+        num_edges1 = edge_index1.shape[1]
+        num_edges2 = edge_index2.shape[1]
+        
+        # For the first set, assign the one-hot encoding [1, 0] to every edge.
+        one_hot1 = torch.tensor([0, 1, 0], dtype=torch.float).repeat(num_edges1, 1)
+        # For the second set, assign the one-hot encoding [0, 1] to every edge.
+        one_hot2 = torch.tensor([0, 0, 1], dtype=torch.float).repeat(num_edges2, 1)
+
+        # Convert each edge in edge_index1 into a tuple and store in a set for fast lookup.
+        edges1 = {tuple(edge_index1[:, i].tolist()) for i in range(num_edges1)}
+        
+        # Filter edge_index2: only keep edges not already in edges1.
+        filtered_edges2 = []
+        filtered_one_hot2 = []
+        for i in range(num_edges2):
+            edge_tuple = tuple(edge_index2[:, i].tolist())
+            if edge_tuple not in edges1:
+                filtered_edges2.append(edge_index2[:, i].unsqueeze(1))
+                filtered_one_hot2.append(one_hot2[i].unsqueeze(0))
+        
+        # If there are any filtered edges, concatenate them; otherwise create empty tensors.
+        if filtered_edges2:
+            filtered_edge_index2 = torch.cat(filtered_edges2, dim=1)
+            filtered_one_hot2 = torch.cat(filtered_one_hot2, dim=0)
+        else:
+            filtered_edge_index2 = torch.empty((2, 0), dtype=edge_index1.dtype, device=edge_index1.device)
+            filtered_one_hot2 = torch.empty((0, 3), dtype=one_hot2.dtype, device=edge_index1.device)
+        
+        
+        # Concatenate the edge indices along the column dimension.
+        combined_edge_index = torch.cat([edge_index1, filtered_edge_index2], dim=1)
+        # Concatenate the new one-hot encoded attributes along the row dimension.
+        combined_edge_attr = torch.cat([one_hot1, filtered_one_hot2], dim=0)
+        
+        return combined_edge_index, combined_edge_attr
 
     @staticmethod
     def add_interval_edges(notes: list[Note], edge_indices, intervals: list[int] = INTERVAL_EDGES):
@@ -376,6 +469,8 @@ class SchenkerDiffHeteroGraphData(Dataset):
     @staticmethod
     def get_metric_strengths(pyscoreparser_notes: list[Note]):
         time_signature = pyscoreparser_notes[0].state_fixed.time_signature
+        if time_signature is None:
+            raise ValueError("Time signature is None")
         time_signature_str = f"{time_signature.numerator}/{time_signature.denominator}"
         time_signature_QL = time_signature.numerator / time_signature.denominator * 4
         curr_total_QL = 0
@@ -434,7 +529,6 @@ class SchenkerDiffHeteroGraphData(Dataset):
         offsets = [note.state_fixed.time_position for note in pyscoreparser_notes]
         durations = [note.note_duration.seconds for note in pyscoreparser_notes]
 
-        # rhythmic_features 
         rhythmic_features = {
             "metric_strength": SchenkerDiffHeteroGraphData.get_metric_strengths(pyscoreparser_notes),
             "duration": np.array([duration / np.max(durations) for duration in durations]),
@@ -564,7 +658,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
         return ground_truth
 
     @staticmethod
-    def process_file_for_GUI(xml_file, include_depth_edges=False, include_global_nodes=True):
+    def process_file_for_GUI(xml_file,  include_depth_edges=False, include_global_nodes=True):
         xml = MusicXMLDocument(xml_file)
         pyscoreparser_notes = xml.get_notes()
         music21_score = music21.converter.parse(str(xml_file))
@@ -579,10 +673,24 @@ class SchenkerDiffHeteroGraphData(Dataset):
             pkl_file=None, include_global_nodes=include_global_nodes
         )
 
-        return {
+        # ground_truth_voice = self.extract_voices(pkl_file, pyscoreparser_notes)
+
+        if 'asap-dataset' in str(xml_file):
+            s_edge_index, s_edge_attr = [], []
+        else:
+            analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
+            s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
+        
+        
+        data_dict = {
             "name": str(xml_file).removesuffix('.xml'),
-            "data": hetero_data
+            "data": hetero_data,
+            # "voice": ground_truth_voice,
+            "s_edge_index": s_edge_index,
+            "s_edge_attr": s_edge_attr
         }
+
+        return data_dict
 
     def process_file(self, xml_file, pkl_file, index, include_depth_edges, save_data=True):
         xml_file = Path(xml_file)
@@ -602,15 +710,34 @@ class SchenkerDiffHeteroGraphData(Dataset):
             include_depth_edges=include_depth_edges, pkl_file=pkl_file, include_global_nodes=INCLUDE_GLOBAL_NODES,
         )
 
-        ground_truth_voice = self.extract_voices(pkl_file, pyscoreparser_notes)
+        # ground_truth_voice = self.extract_voices(pkl_file, pyscoreparser_notes)
 
-        analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
-        s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
+        for key, value in hetero_data.items():
+            # Check if value is None.
+            if value is None:
+                raise ValueError(f"Value for '{key}' is None.")
+
+            # Check if value is a tensor with no elements.
+            if isinstance(value, torch.Tensor) and value.numel() == 0:
+                raise ValueError(f"Tensor for '{key}' is empty.")
+
+            # Check for empty collection types (list, tuple, set, dict).
+            if isinstance(value, (list, tuple, set, dict)) and len(value) == 0:
+                raise ValueError(f"Collection for '{key}' is empty.")
+            
+        if hetero_data[('note', 'forward', 'note')]['edge_index'].numel() == 0:
+            raise ValueError(f"Tensor for '{('node', 'forward', 'node')}' is empty.")
+
+        if 'asap-dataset' in str(xml_file):
+            s_edge_index, s_edge_attr = [], []
+        else:
+            analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
+            s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
         
         data_dict = {
             "name": str(xml_file).removesuffix('.xml'),
             "data": hetero_data,
-            "voice": ground_truth_voice,
+            # "voice": ground_truth_voice,
             "s_edge_index": s_edge_index,
             "s_edge_attr": s_edge_attr
 
@@ -624,27 +751,30 @@ class SchenkerDiffHeteroGraphData(Dataset):
 
         self.data_list = []
         index = 0
-        for directory in self.train_names:
-            pkl_files = []
-            # filepath = f"../{directory}/**/*" if self.test_mode else f"{directory}/**/*"
-            filepath = f"../../../{directory}/**/*" if self.test_mode else f"../../../SchenkerDiff/{directory}/**/*"
-            pkl_files.extend(glob.glob(filepath + ".pkl", recursive=True))
-            if len(pkl_files) > 0:
-                # For inference
-                pkl_file = pkl_files[0]
-            else:
-                pkl_file = None
-            xml_files = []
-            xml_files.extend(glob.glob(filepath + ".xml", recursive=True))
-            for xml_file in xml_files:
-                if index % 100 == 0:
-                    print(f"Processing file {xml_file}")
-                try:
-                    self.process_file(xml_file, pkl_file, index, include_depth_edges=self.include_depth_edges)
-                except EnharmonicError as e:
-                    print(e)
-                    continue
-                index += 1
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            for directory in self.train_names:
+                pkl_files = []
+                # filepath = f"../{directory}/**/*" if self.test_mode else f"{directory}/**/*"
+                filepath = f"../../../{directory}/**/*" if self.test_mode else f"../../../SchenkerDiff/{directory}/**/*"
+                pkl_files.extend(glob.glob(filepath + ".pkl", recursive=True))
+                if len(pkl_files) > 0:
+                    # For inference
+                    pkl_file = pkl_files[0]
+                else:
+                    pkl_file = None
+                xml_files = []
+                xml_files.extend(glob.glob(filepath + ".xml", recursive=True))
+                for xml_file in xml_files:
+                    if index % 100 == 0:
+                        print(f"Processing file {xml_file}")
+                    future = executor.submit(self.process_file, xml_file, pkl_file, index,
+                                           include_depth_edges=self.include_depth_edges)
+                    try:
+                        result = future.result(timeout=10)
+                    except (EnharmonicError, ValueError, KeyError, IndexError, concurrent.futures.TimeoutError) as e:
+                        print(f"Skipping {xml_file} due to error: {e}")
+                        continue
+                    index += 1
 
     def hetero_to_networkx(self, obj_idx):
         edge_type_color = {

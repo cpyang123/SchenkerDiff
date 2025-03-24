@@ -18,7 +18,6 @@ from src.diffusion_model import LiftedDenoisingDiffusion
 from src.diffusion_model_discrete import DiscreteDenoisingDiffusion
 from src.diffusion.extra_features import DummyExtraFeatures, ExtraFeatures
 
-
 warnings.filterwarnings("ignore", category=PossibleUserWarning)
 
 torch.set_float32_matmul_precision('medium')

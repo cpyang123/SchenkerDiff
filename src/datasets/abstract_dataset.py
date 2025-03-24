@@ -4,6 +4,7 @@ import torch
 import pytorch_lightning as pl
 from torch_geometric.loader import DataLoader
 from torch_geometric.data.lightning import LightningDataset
+from torch_geometric.utils import to_dense_adj, to_dense_batch
 
 
 class AbstractDataModule(LightningDataset):
@@ -103,13 +104,16 @@ class AbstractDatasetInfos:
         example_batch = next(iter(datamodule.train_dataloader()))
         ex_dense, node_mask = utils.to_dense(example_batch.x, example_batch.edge_index, example_batch.edge_attr,
                                              example_batch.batch)
-        example_data = {'X_t': ex_dense.X, 'E_t': ex_dense.E, 'y_t': example_batch['y'], 'node_mask': node_mask}
+        ex_r, r_mask = to_dense_batch(example_batch.r, example_batch.batch) 
+        
+        example_data = {'X_t': ex_dense.X, 'E_t': ex_dense.E, 'y_t': example_batch['y'], 'r': ex_r, 'node_mask': node_mask}
 
         self.input_dims = {'X': example_batch['x'].size(1),
+                           'r': example_batch['r'].size(1),
                            'E': example_batch['edge_attr'].size(1),
                            'y': example_batch['y'].size(1) + 1}      # + 1 due to time conditioning
         ex_extra_feat = extra_features(example_data)
-        self.input_dims['X'] += ex_extra_feat.X.size(-1)
+        self.input_dims['X'] += ex_extra_feat.X.size(-1) 
         self.input_dims['E'] += ex_extra_feat.E.size(-1)
         self.input_dims['y'] += ex_extra_feat.y.size(-1)
 
@@ -119,5 +123,6 @@ class AbstractDatasetInfos:
         self.input_dims['y'] += ex_extra_molecular_feat.y.size(-1)
 
         self.output_dims = {'X': example_batch['x'].size(1),
+                            'r': example_batch['r'].size(1),
                             'E': example_batch['edge_attr'].size(1),
                             'y': 0}

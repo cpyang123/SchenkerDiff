@@ -719,7 +719,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
         # get samples from OOS distribution
         np.random.seed(42)
-        n_samples = 4200
+        n_samples = 1074
 
         # Randomly select 90 indices for the test set
         test_indices = np.random.choice(n_samples, 150, replace=False)
@@ -727,7 +727,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         for _ in range(batch_size):
             # Select a random index between 0 and 1080 (inclusive)
             
-            idx = random.choice(test_indices)
+            idx = random.choice(range(75, 340))
             file_path = f"../../../SchenkerDiff/data/schenker/processed/heterdatacleaned/processed/{idx}_processed.pt"
             
             # Load the pickle file containing a dictionary

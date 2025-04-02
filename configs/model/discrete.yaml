@@ -5,7 +5,7 @@ transition: 'marginal'                          # uniform or marginal
 model: 'graph_tf'
 diffusion_steps: 200
 diffusion_noise_schedule: 'cosine'              # 'cosine', 'polynomial_2'
-n_layers: 4
+n_layers: 3
 
 
 extra_features: null        # 'all', 'cycles', 'eigenvalues' or null

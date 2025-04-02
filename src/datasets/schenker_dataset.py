@@ -13,6 +13,8 @@ import pickle
 from copy import deepcopy
 from pathlib import Path
 
+import music21
+
 import music21.converter
 import networkx as nx
 import numpy as np
@@ -65,10 +67,10 @@ class SchenkerGraphDataset(InMemoryDataset):
     @property
     def processed_file_names(self):
         np.random.seed(42)
-        n_samples = 4200
+        n_samples = 74
 
         # Randomly select 90 indices for the test set
-        test_indices = np.random.choice(n_samples, 150, replace=False)
+        test_indices = np.random.choice(n_samples, 5, replace=False)
 
         if self.test_mode:
             return [f'{i}_processed.pt' for i in test_indices]
@@ -190,10 +192,10 @@ class SchenkerDiffHeteroGraphData(Dataset):
     @property
     def processed_file_names(self):
         np.random.seed(42)
-        n_samples = 4200
+        n_samples = 74
 
         # Randomly select 90 indices for the test set
-        test_indices = np.random.choice(n_samples, 150, replace=False)
+        test_indices = np.random.choice(n_samples, 5, replace=False)
 
         if self.test_mode:
             return [f'{i}_processed.pt' for i in test_indices]
@@ -675,11 +677,12 @@ class SchenkerDiffHeteroGraphData(Dataset):
 
         # ground_truth_voice = self.extract_voices(pkl_file, pyscoreparser_notes)
 
-        if 'asap-dataset' in str(xml_file):
-            s_edge_index, s_edge_attr = [], []
-        else:
-            analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
-            s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
+        # if 'asap-dataset' in str(xml_file):
+        #     s_edge_index, s_edge_attr = [], []
+        # else:
+        
+        analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
+        s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
         
         
         data_dict = {
@@ -728,11 +731,11 @@ class SchenkerDiffHeteroGraphData(Dataset):
         if hetero_data[('note', 'forward', 'note')]['edge_index'].numel() == 0:
             raise ValueError(f"Tensor for '{('node', 'forward', 'node')}' is empty.")
 
-        if 'asap-dataset' in str(xml_file):
-            s_edge_index, s_edge_attr = [], []
-        else:
-            analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
-            s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
+        # if 'asap-dataset' in str(xml_file):
+        #     s_edge_index, s_edge_attr = [], []
+        # else:
+        analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
+        s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
         
         data_dict = {
             "name": str(xml_file).removesuffix('.xml'),
@@ -771,7 +774,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
                                            include_depth_edges=self.include_depth_edges)
                     try:
                         result = future.result(timeout=10)
-                    except (EnharmonicError, ValueError, KeyError, IndexError, concurrent.futures.TimeoutError) as e:
+                    except (EnharmonicError, ValueError, KeyError, IndexError, music21.analysis.discrete.DiscreteAnalysisException, concurrent.futures.TimeoutError) as e:
                         print(f"Skipping {xml_file} due to error: {e}")
                         continue
                     index += 1

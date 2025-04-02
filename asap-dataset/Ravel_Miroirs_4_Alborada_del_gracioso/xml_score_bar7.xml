@@ -1,1064 +1,277 @@
-<?xml version='1.0' encoding='utf-8'?>
-<score-partwise version="1.1"><movement-title>Jeux d'eau</movement-title>
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE score-partwise  PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="3.1">
+  <movement-title>Music21 Fragment</movement-title>
   <identification>
-    <creator type="composer">Maurice Ravel</creator>
+    <creator type="composer">Music21</creator>
     <encoding>
-      <software>Finale 2014 for Windows</software>
-      <software>Dolet Light for Finale 2014</software>
-      <encoding-date>2020-03-12</encoding-date>
-      <supports element="accidental" type="yes" />
-      <supports element="beam" type="yes" />
-      <supports element="stem" type="yes" />
+      <encoding-date>2025-03-25</encoding-date>
+      <software>music21 v.8.3.0</software>
     </encoding>
   </identification>
   <defaults>
     <scaling>
-      <millimeters>4.826</millimeters>
+      <millimeters>7</millimeters>
       <tenths>40</tenths>
     </scaling>
-    <page-layout>
-      <page-height>2462</page-height>
-      <page-width>1740</page-width>
-      <page-margins type="even">
-        <left-margin>83</left-margin>
-        <right-margin>83</right-margin>
-        <top-margin>83</top-margin>
-        <bottom-margin>166</bottom-margin>
-      </page-margins>
-      <page-margins type="odd">
-        <left-margin>83</left-margin>
-        <right-margin>83</right-margin>
-        <top-margin>83</top-margin>
-        <bottom-margin>166</bottom-margin>
-      </page-margins>
-    </page-layout>
-    <system-layout>
-      <system-margins>
-        <left-margin>0</left-margin>
-        <right-margin>0</right-margin>
-      </system-margins>
-      <system-distance>103</system-distance>
-      <top-system-distance>60</top-system-distance>
-    </system-layout>
-    <staff-layout>
-      <staff-distance>80</staff-distance>
-    </staff-layout>
-    <music-font font-family="Maestro,music" font-size="13.7" />
-    <word-font font-family="Times New Roman" font-size="6.8" />
   </defaults>
-  <credit>
-    <credit-words default-x="871" default-y="2378" font-family="Trebuchet MS" font-size="18" font-weight="bold" justify="center" valign="top">M A U R I C E   R A V E L</credit-words>
-  </credit>
-  <credit>
-    <credit-words default-x="871" default-y="2378" font-family="FreeSerif" font-size="14" justify="center" valign="top">4. Alborada del gracioso</credit-words>
-  </credit>
-  <credit>
-    <credit-words default-x="871" default-y="2378" font-family="Trebuchet MS" font-size="19" font-weight="bold" justify="center" valign="top">Miroirs</credit-words>
-  </credit>
   <part-list>
-    <score-part id="P1">
-      <part-name>Piano</part-name>
-      <part-abbreviation>Pno.</part-abbreviation>
-      <score-instrument id="P1-I1">
-        <instrument-name>Piano</instrument-name>
-      </score-instrument>
-      <midi-instrument id="P1-I1">
-        <midi-channel>1</midi-channel>
-        <midi-program>1</midi-program>
-      </midi-instrument>
+    <score-part id="P19296e56b3d1f278cf2fbdf1227acfa9">
+      <part-name />
     </score-part>
   </part-list>
-  
-  <part id="P1"><measure number="31" width="597">
+  <!--=========================== Part 1 ===========================-->
+  <part id="P19296e56b3d1f278cf2fbdf1227acfa9">
+    <!--========================= Measure 71 =========================-->
+    <measure number="71">
       <attributes>
-        <time>
-          <beats>9</beats>
-          <beat-type>8</beat-type>
-        </time>
-      <key>
+        <divisions>10080</divisions>
+        <key>
           <fifths>-1</fifths>
           <mode>major</mode>
         </key>
-        </attributes>
-      <direction placement="below">
-        <direction-type>
-          <dynamics default-y="-85">
-            <ff />
-          </dynamics>
-        </direction-type>
-        <staff>1</staff>
-        <sound dynamics="124" />
-      </direction>
-      <note default-x="46">
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>1</voice>
-        <type>eighth</type>
-        <stem default-y="-64.5">down</stem>
-        <staff>1</staff>
-        <beam number="1">begin</beam>
-        <notations>
-          <articulations>
-            <accent default-x="-1" default-y="24" placement="above" />
-          </articulations>
-        </notations>
-      </note>
-      <note default-x="46">
-        <chord />
+        <time>
+          <beats>3</beats>
+          <beat-type>4</beat-type>
+        </time>
+      </attributes>
+      <note default-x="45">
         <pitch>
           <step>D</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>1</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>1</staff>
-      </note>
-      <note default-x="46">
-        <chord />
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>1</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>1</staff>
-      </note>
-      <note default-x="95">
-        <pitch>
-          <step>A</step>
           <octave>4</octave>
         </pitch>
-        <duration>171</duration>
-        <voice>1</voice>
-        <type>16th</type>
-        <time-modification>
-          <actual-notes>3</actual-notes>
-          <normal-notes>2</normal-notes>
-        </time-modification>
-        <stem default-y="-66">down</stem>
-        <staff>1</staff>
-        <beam number="1">continue</beam>
-        <beam number="2">begin</beam>
-        <notations>
-          <tuplet bracket="no" number="1" placement="below" type="start" />
-          <slur number="1" placement="above" type="start" />
-        </notations>
-      </note>
-      <note default-x="125">
-        <pitch>
-          <step>D</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>170</duration>
-        <voice>1</voice>
-        <type>16th</type>
-        <time-modification>
-          <actual-notes>3</actual-notes>
-          <normal-notes>2</normal-notes>
-        </time-modification>
-        <stem default-y="-67">down</stem>
-        <staff>1</staff>
-        <beam number="1">continue</beam>
-        <beam number="2">continue</beam>
-      </note>
-      <note default-x="125">
-        <chord />
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>170</duration>
-        <voice>1</voice>
-        <type>16th</type>
-        <time-modification>
-          <actual-notes>3</actual-notes>
-          <normal-notes>2</normal-notes>
-        </time-modification>
-        <stem>down</stem>
-        <staff>1</staff>
+        <duration>15120</duration>
+        <type>quarter</type>
+        <dot />
+        <stem default-y="-9.5">up</stem>
       </note>
       <note default-x="156">
         <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>171</duration>
-        <voice>1</voice>
-        <type>16th</type>
-        <time-modification>
-          <actual-notes>3</actual-notes>
-          <normal-notes>2</normal-notes>
-        </time-modification>
-        <stem default-y="-68">down</stem>
-        <staff>1</staff>
-        <beam number="1">continue</beam>
-        <beam number="2">end</beam>
-        <notations>
-          <tuplet number="1" type="stop" />
-          <slur number="1" type="stop" />
-        </notations>
-      </note>
-      <note default-x="222">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>512</duration>
-        <tie type="start" />
-        <voice>1</voice>
-        <type>eighth</type>
-        <accidental>sharp</accidental>
-        <stem default-y="-70">down</stem>
-        <staff>1</staff>
-        <beam number="1">end</beam>
-        <notations>
-          <tied type="start" />
-          <slur number="1" placement="above" type="start" />
-          <articulations>
-            <accent default-x="-1" default-y="10" placement="above" />
-          </articulations>
-        </notations>
-      </note>
-      <note default-x="222">
-        <chord />
-        <pitch>
-          <step>B</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>512</duration>
-        <tie type="start" />
-        <voice>1</voice>
-        <type>eighth</type>
-        <accidental>natural</accidental>
-        <stem>down</stem>
-        <staff>1</staff>
-        <notations>
-          <tied type="start" />
-        </notations>
-      </note>
-      <note default-x="210">
-        <chord />
-        <pitch>
           <step>E</step>
-          <alter>-1</alter>
-          <octave>5</octave>
+          <octave>4</octave>
         </pitch>
-        <duration>512</duration>
-        <tie type="start" />
-        <voice>1</voice>
+        <duration>5040</duration>
         <type>eighth</type>
-        <accidental>flat</accidental>
-        <stem>down</stem>
-        <staff>1</staff>
+        <stem default-y="-4">up</stem>
+      </note>
+      <note default-x="208">
+        <pitch>
+          <step>F</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>10080</duration>
+        <tie type="start" />
+        <type>quarter</type>
+        <stem default-y="1">up</stem>
         <notations>
           <tied type="start" />
         </notations>
-      </note>
-      <note default-x="222">
-        <chord />
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>512</duration>
-        <tie type="start" />
-        <voice>1</voice>
-        <type>eighth</type>
-        <accidental>sharp</accidental>
-        <stem>down</stem>
-        <staff>1</staff>
-        <notations>
-          <tied type="start" />
-        </notations>
-      </note>
-      <note default-x="289">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>1536</duration>
-        <tie type="stop" />
-        <tie type="start" />
-        <voice>1</voice>
-        <type>quarter</type>
-        <dot />
-        <stem default-y="-64">down</stem>
-        <staff>1</staff>
-        <notations>
-          <tied type="stop" />
-          <tied type="start" />
-        </notations>
-      </note>
-      <note default-x="289">
-        <chord />
-        <pitch>
-          <step>B</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>1536</duration>
-        <tie type="stop" />
-        <tie type="start" />
-        <voice>1</voice>
-        <type>quarter</type>
-        <dot />
-        <stem>down</stem>
-        <staff>1</staff>
-        <notations>
-          <tied type="stop" />
-          <tied type="start" />
-        </notations>
-      </note>
-      <note default-x="277">
-        <chord />
-        <pitch>
-          <step>E</step>
-          <alter>-1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>1536</duration>
-        <tie type="stop" />
-        <tie type="start" />
-        <voice>1</voice>
-        <type>quarter</type>
-        <dot />
-        <stem>down</stem>
-        <staff>1</staff>
-        <notations>
-          <tied type="stop" />
-          <tied type="start" />
-        </notations>
-      </note>
-      <note default-x="289">
-        <chord />
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>1536</duration>
-        <tie type="stop" />
-        <tie type="start" />
-        <voice>1</voice>
-        <type>quarter</type>
-        <dot />
-        <stem>down</stem>
-        <staff>1</staff>
-        <notations>
-          <tied type="stop" />
-          <tied type="start" />
-        </notations>
-      </note>
-      <note default-x="450">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>512</duration>
-        <tie type="stop" />
-        <voice>1</voice>
-        <type>eighth</type>
-        <stem default-y="-70.5">down</stem>
-        <staff>1</staff>
-        <notations>
-          <tied type="stop" />
-        </notations>
-      </note>
-      <note default-x="450">
-        <chord />
-        <pitch>
-          <step>B</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>512</duration>
-        <tie type="stop" />
-        <voice>1</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>1</staff>
-        <notations>
-          <tied type="stop" />
-        </notations>
-      </note>
-      <note default-x="438">
-        <chord />
-        <pitch>
-          <step>E</step>
-          <alter>-1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>512</duration>
-        <tie type="stop" />
-        <voice>1</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>1</staff>
-        <notations>
-          <tied type="stop" />
-        </notations>
-      </note>
-      <note default-x="450">
-        <chord />
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>512</duration>
-        <tie type="stop" />
-        <voice>1</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>1</staff>
-        <notations>
-          <tied type="stop" />
-        </notations>
-      </note>
-      <note default-x="499">
-        <pitch>
-          <step>G</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>1024</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        <stem default-y="-59">down</stem>
-        <staff>1</staff>
-        <notations>
-          <slur number="1" type="stop" />
-        </notations>
-      </note>
-      <note default-x="499">
-        <chord />
-        <pitch>
-          <step>C</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>1024</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        <stem>down</stem>
-        <staff>1</staff>
-      </note>
-      <note default-x="499">
-        <chord />
-        <pitch>
-          <step>E</step>
-          <alter>-1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>1024</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        <stem>down</stem>
-        <staff>1</staff>
-      </note>
-      <note default-x="499">
-        <chord />
-        <pitch>
-          <step>G</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>1024</duration>
-        <voice>1</voice>
-        <type>quarter</type>
-        <stem>down</stem>
-        <staff>1</staff>
-      </note>
-      <backup>
-        <duration>4608</duration>
-      </backup>
-      <note default-x="46">
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>2</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem default-y="-65">down</stem>
-        <staff>2</staff>
-        <beam number="1">begin</beam>
-      </note>
-      <note default-x="95">
-        <pitch>
-          <step>F</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem default-y="-65">down</stem>
-        <staff>2</staff>
-        <beam number="1">continue</beam>
-      </note>
-      <note default-x="95">
-        <chord />
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>3</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>2</staff>
-      </note>
-      <note default-x="95">
-        <chord />
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>2</staff>
-      </note>
-      <note default-x="222">
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>2</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem default-y="-65">down</stem>
-        <staff>2</staff>
-        <beam number="1">end</beam>
-      </note>
-      <note default-x="289">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>3</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <accidental>sharp</accidental>
-        <stem default-y="-65">down</stem>
-        <staff>2</staff>
-        <beam number="1">begin</beam>
-        <notations>
-          <articulations>
-            <accent default-x="-1" default-y="30" placement="above" />
-          </articulations>
-        </notations>
-      </note>
-      <note default-x="289">
-        <chord />
-        <pitch>
-          <step>B</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <accidental>natural</accidental>
-        <stem>down</stem>
-        <staff>2</staff>
-      </note>
-      <note default-x="289">
-        <chord />
-        <pitch>
-          <step>E</step>
-          <alter>-1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <accidental>flat</accidental>
-        <stem>down</stem>
-        <staff>2</staff>
-      </note>
-      <note default-x="353">
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>2</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <accidental parentheses="yes">flat</accidental>
-        <stem default-y="-65">down</stem>
-        <staff>2</staff>
-        <beam number="1">continue</beam>
-      </note>
-      <note default-x="402">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>3</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem default-y="-65">down</stem>
-        <staff>2</staff>
-        <beam number="1">end</beam>
-      </note>
-      <note default-x="402">
-        <chord />
-        <pitch>
-          <step>B</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>2</staff>
-      </note>
-      <note default-x="402">
-        <chord />
-        <pitch>
-          <step>E</step>
-          <alter>-1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>2</staff>
-      </note>
-      <note default-x="450">
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>2</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem default-y="-65">down</stem>
-        <staff>2</staff>
-        <beam number="1">begin</beam>
-      </note>
-      <note default-x="499">
-        <pitch>
-          <step>G</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem default-y="-65">down</stem>
-        <staff>2</staff>
-        <beam number="1">continue</beam>
-      </note>
-      <note default-x="499">
-        <chord />
-        <pitch>
-          <step>C</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>2</staff>
-      </note>
-      <note default-x="499">
-        <chord />
-        <pitch>
-          <step>E</step>
-          <alter>-1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>2</staff>
-      </note>
-      <note default-x="547">
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>2</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>4</voice>
-        <type>eighth</type>
-        <stem default-y="-65">down</stem>
-        <staff>2</staff>
-        <beam number="1">end</beam>
-      </note>
-      <backup>
-        <duration>4608</duration>
-      </backup>
-      <note>
-        <rest />
-        <duration>4608</duration>
-        <voice>7</voice>
-        <staff>3</staff>
       </note>
     </measure>
-    
-    <measure number="32" width="543">
-      <note default-x="16">
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>1</voice>
-        <type>eighth</type>
-        <stem default-y="-64.5">down</stem>
-        <staff>1</staff>
-        <beam number="1">begin</beam>
-        <notations>
-          <articulations>
-            <accent default-x="-1" default-y="24" placement="above" />
-          </articulations>
-        </notations>
-      </note>
-      <note default-x="16">
-        <chord />
-        <pitch>
-          <step>D</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>1</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>1</staff>
-      </note>
-      <note default-x="16">
-        <chord />
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>512</duration>
-        <voice>1</voice>
-        <type>eighth</type>
-        <stem>down</stem>
-        <staff>1</staff>
-      </note>
-      <note default-x="63">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>171</duration>
-        <voice>1</voice>
-        <type>16th</type>
-        <time-modification>
-          <actual-notes>3</actual-notes>
-          <normal-notes>2</normal-notes>
-        </time-modification>
-        <stem default-y="-66">down</stem>
-        <staff>1</staff>
-        <beam number="1">continue</beam>
-        <beam number="2">begin</beam>
-        <notations>
-          <tuplet bracket="no" number="1" placement="below" type="start" />
-          <slur number="1" placement="above" type="start" />
-        </notations>
-      </note>
-      <note default-x="94">
-        <pitch>
-          <step>D</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>170</duration>
-        <voice>1</voice>
-        <type>16th</type>
-        <time-modification>
-          <actual-notes>3</actual-notes>
-          <normal-notes>2</normal-notes>
-        </time-modification>
-        <stem default-y="-67">down</stem>
-        <staff>1</staff>
-        <beam number="1">continue</beam>
-        <beam number="2">continue</beam>
-      </note>
-      <note default-x="94">
-        <chord />
-        <pitch>
-          <step>B</step>
-          <alter>-1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>170</duration>
-        <voice>1</voice>
-        <type>16th</type>
-        <time-modification>
-          <actual-notes>3</actual-notes>
-          <normal-notes>2</normal-notes>
-        </time-modification>
-        <stem>down</stem>
-        <staff>1</staff>
-      </note>
-      <note default-x="124">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>171</duration>
-        <voice>1</voice>
-        <type>16th</type>
-        <time-modification>
-          <actual-notes>3</actual-notes>
-          <normal-notes>2</normal-notes>
-        </time-modification>
-        <stem default-y="-68">down</stem>
-        <staff>1</staff>
-        <beam number="1">continue</beam>
-        <beam number="2">end</beam>
-        <notations>
-          <tuplet number="1" type="stop" />
-          <slur number="1" type="stop" />
-        </notations>
-      </note>
-      <note default-x="190">
+    <!--========================= Measure 72 =========================-->
+    <measure number="72">
+      <note default-x="90">
         <pitch>
           <step>F</step>
           <alter>1</alter>
           <octave>4</octave>
         </pitch>
-        <duration>512</duration>
-        <tie type="start" />
-        <voice>1</voice>
+        <duration>10080</duration>
+        <tie type="stop" />
+        <type>quarter</type>
+        <stem default-y="1">up</stem>
+        <notations>
+          <tied type="stop" />
+        </notations>
+      </note>
+      <note default-x="155">
+        <pitch>
+          <step>F</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
         <type>eighth</type>
-        <accidental>sharp</accidental>
-        <stem default-y="-70">down</stem>
-        <staff>1</staff>
+        <stem default-y="0">up</stem>
+        <beam number="1">begin</beam>
+      </note>
+      <note default-x="194">
+        <pitch>
+          <step>F</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem default-y="0">up</stem>
+        <beam number="1">end</beam>
+      </note>
+      <note default-x="234">
+        <pitch>
+          <step>F</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>3357</duration>
+        <type>eighth</type>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+          <normal-type>eighth</normal-type>
+        </time-modification>
+        <stem default-y="0">up</stem>
+        <beam number="1">begin</beam>
+        <notations>
+          <tuplet bracket="no" number="1" placement="above" type="start">
+            <tuplet-actual>
+              <tuplet-number>3</tuplet-number>
+              <tuplet-type>eighth</tuplet-type>
+            </tuplet-actual>
+            <tuplet-normal>
+              <tuplet-number>2</tuplet-number>
+              <tuplet-type>eighth</tuplet-type>
+            </tuplet-normal>
+          </tuplet>
+        </notations>
+      </note>
+      <note default-x="264">
+        <pitch>
+          <step>F</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>3367</duration>
+        <type>eighth</type>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+          <normal-type>eighth</normal-type>
+        </time-modification>
+        <stem default-y="0">up</stem>
+        <beam number="1">continue</beam>
+      </note>
+      <note default-x="293">
+        <pitch>
+          <step>F</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>3357</duration>
+        <type>eighth</type>
+        <time-modification>
+          <actual-notes>3</actual-notes>
+          <normal-notes>2</normal-notes>
+          <normal-type>eighth</normal-type>
+        </time-modification>
+        <stem default-y="0">up</stem>
         <beam number="1">end</beam>
         <notations>
-          <tied type="start" />
-          <slur number="1" placement="above" type="start" />
+          <tuplet number="1" type="stop" />
+        </notations>
+      </note>
+    </measure>
+    <!--========================= Measure 73 =========================-->
+    <measure number="73">
+      <note default-x="35">
+        <pitch>
+          <step>A</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>15120</duration>
+        <type>quarter</type>
+        <dot />
+        <stem default-y="10">up</stem>
+        <notations>
           <articulations>
-            <accent default-x="-1" default-y="10" placement="above" />
+            <accent default-x="-2" default-y="-55" placement="below" />
           </articulations>
         </notations>
       </note>
-      <note default-x="190">
-        <chord />
+      <note default-x="131">
         <pitch>
-          <step>B</step>
+          <step>F</step>
+          <alter>1</alter>
           <octave>4</octave>
         </pitch>
-        <duration>512</duration>
-        <tie type="start" />
-        <voice>1</voice>
+        <duration>5040</duration>
         <type>eighth</type>
-        <accidental>natural</accidental>
-        <stem>down</stem>
-        <staff>1</staff>
-        <notations>
-          <tied type="start" />
-        </notations>
+        <stem default-y="1">up</stem>
       </note>
-      <backup>
-        <duration>4608</duration>
-      </backup>
-      <backup>
-        <duration>4608</duration>
-      </backup>
-      </measure>
-    
-    <measure number="33" width="550">
-      <print new-system="yes">
-        <system-layout>
-          <system-margins>
-            <left-margin>21</left-margin>
-            <right-margin>0</right-margin>
-          </system-margins>
-          <system-distance>148</system-distance>
-        </system-layout>
-        <staff-layout number="2">
-          <staff-distance>116</staff-distance>
-        </staff-layout>
-        <staff-layout number="3">
-          <staff-distance>65</staff-distance>
-        </staff-layout>
-      </print>
-      <attributes>
-        <clef number="1">
-          <sign>F</sign>
-          <line>4</line>
-        </clef>
-      </attributes>
-      <direction placement="below">
-        <direction-type>
-          <dynamics default-y="-80">
-            <mp />
-          </dynamics>
-        </direction-type>
-        <staff>1</staff>
-        <sound dynamics="83" />
-      </direction>
-      <direction placement="below">
-        <direction-type>
-          <wedge default-y="-100" spread="0" type="crescendo" />
-        </direction-type>
-        <staff>1</staff>
-      </direction>
-      <attributes>
-        <clef number="1">
-          <sign>G</sign>
-          <line>2</line>
-        </clef>
-      </attributes>
-      <direction placement="below">
-        <direction-type>
-          <dynamics default-y="-105">
-            <f />
-          </dynamics>
-        </direction-type>
-        <staff>1</staff>
-        <sound dynamics="107" />
-      </direction>
-      <direction>
-        <direction-type>
-          <wedge spread="15" type="stop" />
-        </direction-type>
-        <staff>1</staff>
-      </direction>
-      <backup>
-        <duration>4608</duration>
-      </backup>
-      <forward>
-        <duration>1536</duration>
-        <voice>4</voice>
-        <staff>2</staff>
-      </forward>
-      <forward>
-        <duration>1536</duration>
-        <voice>4</voice>
-        <staff>2</staff>
-      </forward>
-      <backup>
-        <duration>4608</duration>
-      </backup>
-      </measure>
-    
-    <measure number="34" width="530">
-      <direction placement="below">
-        <direction-type>
-          <dynamics default-y="-80">
-            <mp />
-          </dynamics>
-        </direction-type>
-        <staff>1</staff>
-        <sound dynamics="83" />
-      </direction>
-      <attributes>
-        <clef number="1">
-          <sign>F</sign>
-          <line>4</line>
-        </clef>
-      </attributes>
-      <direction placement="below">
-        <direction-type>
-          <wedge default-y="-100" spread="0" type="crescendo" />
-        </direction-type>
-        <staff>1</staff>
-      </direction>
-      <attributes>
-        <clef number="1">
-          <sign>G</sign>
-          <line>2</line>
-        </clef>
-      </attributes>
-      <direction placement="below">
-        <direction-type>
-          <dynamics default-y="-105">
-            <f />
-          </dynamics>
-        </direction-type>
-        <staff>1</staff>
-        <sound dynamics="107" />
-      </direction>
-      <direction>
-        <direction-type>
-          <wedge spread="15" type="stop" />
-        </direction-type>
-        <staff>1</staff>
-      </direction>
-      <backup>
-        <duration>4608</duration>
-      </backup>
-      <forward>
-        <duration>1536</duration>
-        <voice>4</voice>
-        <staff>2</staff>
-      </forward>
-      <forward>
-        <duration>1536</duration>
-        <voice>4</voice>
-        <staff>2</staff>
-      </forward>
-      <backup>
-        <duration>4608</duration>
-      </backup>
-      </measure>
-    
-    <measure number="35" width="475">
-      <attributes>
-        <time>
-          <beats>6</beats>
-          <beat-type>8</beat-type>
-        </time>
-      </attributes>
-      <direction placement="below">
-        <direction-type>
-          <dynamics default-y="-80">
-            <p />
-          </dynamics>
-        </direction-type>
-        <staff>1</staff>
-        <sound dynamics="78" />
-      </direction>
-      <attributes>
-        <clef number="1">
-          <sign>F</sign>
-          <line>4</line>
-        </clef>
-      </attributes>
-      <direction placement="below">
-        <direction-type>
-          <wedge default-y="-75" spread="0" type="crescendo" />
-        </direction-type>
-        <staff>1</staff>
-      </direction>
-      <backup>
-        <duration>3072</duration>
-      </backup>
-      <forward>
-        <duration>3072</duration>
-        <voice>4</voice>
-        <staff>2</staff>
-      </forward>
-      <backup>
-        <duration>3072</duration>
-      </backup>
-      </measure>
-    
-    </part></score-partwise>
+      <note default-x="176">
+        <pitch>
+          <step>C</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem default-y="-14.5">up</stem>
+      </note>
+    </measure>
+    <!--========================= Measure 74 =========================-->
+    <measure number="74">
+      <note default-x="45">
+        <pitch>
+          <step>C</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>20160</duration>
+        <type>half</type>
+        <stem default-y="-14.5">up</stem>
+      </note>
+      <note default-x="161">
+        <pitch>
+          <step>B</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem default-y="-20">up</stem>
+      </note>
+    </measure>
+    <!--========================= Measure 75 =========================-->
+    <measure number="75">
+      <note print-object="no" print-spacing="yes">
+        <rest measure="yes" />
+        <duration>30240</duration>
+      </note>
+    </measure>
+    <!--========================= Measure 76 =========================-->
+    <measure number="76">
+      <note print-object="no" print-spacing="yes">
+        <rest measure="yes" />
+        <duration>30240</duration>
+      </note>
+    </measure>
+    <!--========================= Measure 77 =========================-->
+    <measure number="77">
+      <note print-object="no" print-spacing="yes">
+        <rest measure="yes" />
+        <duration>30240</duration>
+      </note>
+    </measure>
+    <!--========================= Measure 78 =========================-->
+    <measure number="78">
+      <note print-object="no" print-spacing="yes">
+        <rest measure="yes" />
+        <duration>30240</duration>
+      </note>
+    </measure>
+    <!--========================= Measure 79 =========================-->
+    <measure number="79">
+      <note print-object="no" print-spacing="yes">
+        <rest measure="yes" />
+        <duration>30240</duration>
+      </note>
+    </measure>
+    <!--========================= Measure 80 =========================-->
+    <measure number="80">
+      <note print-object="no" print-spacing="yes">
+        <rest measure="yes" />
+        <duration>30240</duration>
+      </note>
+    </measure>
+  </part>
+</score-partwise>

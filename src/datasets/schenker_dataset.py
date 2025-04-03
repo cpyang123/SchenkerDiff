@@ -731,11 +731,18 @@ class SchenkerDiffHeteroGraphData(Dataset):
         if hetero_data[('note', 'forward', 'note')]['edge_index'].numel() == 0:
             raise ValueError(f"Tensor for '{('node', 'forward', 'node')}' is empty.")
 
-        # if 'asap-dataset' in str(xml_file):
-        #     s_edge_index, s_edge_attr = [], []
-        # else:
-        analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
-        s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
+        if 'asap-dataset' in str(xml_file):
+            analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
+            s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
+        else:
+            edge_index = {}
+            temp_edge_index = self.add_voice_and_depth_edges(pkl_file, edge_index)
+            s_edge_index = []
+            for edges_list in temp_edge_index.values():
+                s_edge_index.extend(edges_list)
+            s_edge_attr = [1] * len(s_edge_index)
+            s_edge_index = torch.tensor(s_edge_index, dtype=torch.long).t().contiguous()
+            s_edge_attr = torch.tensor(s_edge_attr, dtype=torch.float)
         
         data_dict = {
             "name": str(xml_file).removesuffix('.xml'),

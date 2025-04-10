@@ -781,7 +781,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
                                            include_depth_edges=self.include_depth_edges)
                     try:
                         result = future.result(timeout=10)
-                    except (EnharmonicError, ValueError, KeyError, IndexError, music21.analysis.discrete.DiscreteAnalysisException, concurrent.futures.TimeoutError) as e:
+                    except (EnharmonicError, ValueError,TypeError, KeyError, IndexError, music21.analysis.discrete.DiscreteAnalysisException, concurrent.futures.TimeoutError) as e:
                         print(f"Skipping {xml_file} due to error: {e}")
                         continue
                     index += 1

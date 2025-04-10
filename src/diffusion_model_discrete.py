@@ -718,6 +718,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         node_sizes = []
 
         # get samples from OOS distribution
+        # [TODO]: take these from cfg files instead having magic numbers
         np.random.seed(42)
         n_samples = 250
 

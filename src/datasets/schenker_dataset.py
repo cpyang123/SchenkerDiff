@@ -70,7 +70,7 @@ class SchenkerGraphDataset(InMemoryDataset):
         n_samples = 74
 
         # Randomly select 90 indices for the test set
-        test_indices = np.random.choice(n_samples, 5, replace=False)
+        test_indices = np.random.choice(n_samples, 20, replace=False)
 
         if self.test_mode:
             return [f'{i}_processed.pt' for i in test_indices]
@@ -137,7 +137,7 @@ NUM_DEPTHS = 7
 # NUM_FEATURES = 42
 NUM_FEATURES = 16
 MAX_LEN = 40
-INCLUDE_GLOBAL_NODES = True
+INCLUDE_GLOBAL_NODES = False
 
 class SchenkerDiffHeteroGraphData(Dataset):
     def __init__(self,
@@ -259,6 +259,9 @@ class SchenkerDiffHeteroGraphData(Dataset):
         else:
             s_attr = hetero_dict['s_edge_attr'].unsqueeze(-1)
 
+        t_edges = hetero_dict['t_edges']
+        b_edges = hetero_dict['b_edges'] 
+
         # For s_edge_index: if None, create an empty tensor.
         # Often, edge indices are expected to have shape (2, num_edges), so we use (2, 0) with type long.
         if hetero_dict['s_edge_index'] is None or hetero_dict['s_edge_attr'] == []:
@@ -278,7 +281,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
             edge_indices.append(edge_index)
 
             # Create one-hot encoding for the edge type
-            one_hot = torch.zeros(len(edge_types))
+            one_hot = torch.zeros(20)
             one_hot[one_hot_dict[edge_type]] = 1
             edge_attr = one_hot.repeat(edge_index.size()[1], 1)  # Repeat for each edge
             edge_attrs.append(edge_attr)
@@ -289,16 +292,17 @@ class SchenkerDiffHeteroGraphData(Dataset):
         # padded_edge_attrs = edge_attrs
         
         assert torch.all((x == 0) | (x == 1)), "Tensor contains values other than 0 or 1."
-
-        
-        if 'asap-dataset' in hetero_data['name']:
-            data = Data(x=x, edge_index=edge_indices, edge_attr=edge_attrs, \
+        data = Data(x=x, edge_index=edge_indices, edge_attr=edge_attrs, \
                      y=torch.zeros([1, 0]), r = r)
-        else: 
-            final_indicies, final_attrs = SchenkerDiffHeteroGraphData.concat_adjacencies(edge_indices, edge_attrs, s_inx,s_attr)
+        
+        # if 'asap-dataset' in hetero_data['name']:
+        #     data = Data(x=x, edge_index=edge_indices, edge_attr=edge_attrs, \
+        #              y=torch.zeros([1, 0]), r = r)
+        # else: 
+        #     final_indicies, final_attrs = SchenkerDiffHeteroGraphData.concat_adjacencies(edge_indices, edge_attrs, s_inx,s_attr, t_edges, b_edges)
 
-            data = Data(x=x, edge_index=final_indicies, edge_attr=final_attrs, \
-                        y=torch.zeros([1, 0]), r = r)
+        #     data = Data(x=x, edge_index=final_indicies, edge_attr=final_attrs, \
+        #                 y=torch.zeros([1, 0]), r = r)
 
         return data
 
@@ -565,7 +569,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
         #     global_nodes = torch.zeros(4, NUM_FEATURES, dtype=torch.float)
         #     note_features = torch.cat([note_features, global_nodes], dim=0)
 
-        # [TODO] Rythmic features, including offsets, duration, metric_strngth
+
 
         notes_graph = score_graph.make_edge(pyscoreparser_notes)
         hetero_data['note'].x = note_features
@@ -592,12 +596,12 @@ class SchenkerDiffHeteroGraphData(Dataset):
             # "voice",
             "forward",
             # "slur",
-            # "sustain",
+            "sustain",
             # "rest",
         ]}
         # edge_indices = HeteroGraphData.add_interval_edges(pyscoreparser_notes, edge_indices)
-        # if include_depth_edges:
-        #     edge_indices = HeteroGraphData.add_voice_and_depth_edges(pkl_file, edge_indices)
+        if include_depth_edges:
+            edge_indices = SchenkerDiffHeteroGraphData.add_voice_and_depth_edges(pkl_file, edge_indices)
         # if include_global_nodes:
         #     edge_indices = HeteroGraphData.add_global_node_edges(pyscoreparser_notes, edge_indices)
 
@@ -713,21 +717,31 @@ class SchenkerDiffHeteroGraphData(Dataset):
             include_depth_edges=include_depth_edges, pkl_file=pkl_file, include_global_nodes=INCLUDE_GLOBAL_NODES,
         )
 
-        # ground_truth_voice = self.extract_voices(pkl_file, pyscoreparser_notes)
+        # ground_truth_voice = self.extract_voices(pkl_file, pyscoreparser_notes, include_depth_edges)
+
+        with open(pkl_file, 'rb') as f:
+            edges = pickle.load(f)
+
+        # Recursively unpack t_edges, b_edges to get the node indices under treble, bass voices resp.
+        # Union = both, complement of both = inner voice, other wise just whichever treble/bass
+
+        # Multilabel classification 3 -- treble, bass, inner (+ implicit class: treble + bass)
+        t_edges = edges["t_edges"][0]
+        b_edges = edges["b_edges"][0]
 
         for key, value in hetero_data.items():
             # Check if value is None.
             if value is None:
                 raise ValueError(f"Value for '{key}' is None.")
-
+            
             # Check if value is a tensor with no elements.
             if isinstance(value, torch.Tensor) and value.numel() == 0:
                 raise ValueError(f"Tensor for '{key}' is empty.")
-
+            
             # Check for empty collection types (list, tuple, set, dict).
             if isinstance(value, (list, tuple, set, dict)) and len(value) == 0:
                 raise ValueError(f"Collection for '{key}' is empty.")
-            
+
         if hetero_data[('note', 'forward', 'note')]['edge_index'].numel() == 0:
             raise ValueError(f"Tensor for '{('node', 'forward', 'node')}' is empty.")
 
@@ -743,18 +757,21 @@ class SchenkerDiffHeteroGraphData(Dataset):
             s_edge_attr = [1] * len(s_edge_index)
             s_edge_index = torch.tensor(s_edge_index, dtype=torch.long).t().contiguous()
             s_edge_attr = torch.tensor(s_edge_attr, dtype=torch.float)
-        
-        data_dict = {
-            "name": str(xml_file).removesuffix('.xml'),
-            "data": hetero_data,
-            # "voice": ground_truth_voice,
-            "s_edge_index": s_edge_index,
-            "s_edge_attr": s_edge_attr
 
+        data_dict = { 
+            "name": str(xml_file).removesuffix('.xml'), 
+            "data": hetero_data, 
+            # "voice": ground_truth_voice,  
+            "s_edge_index": s_edge_index, 
+            "s_edge_attr": s_edge_attr ,
+            "t_edges": t_edges,
+            "b_edges": b_edges
         }
+
         if save_data:
             torch.save(data_dict, os.path.join(self.processed_dir, f'{index}_processed.pt'))
             self.data_list.append(data_dict)
+
         return data_dict
 
     def process(self):

@@ -720,7 +720,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         # get samples from OOS distribution
         # [TODO]: take these from cfg files instead having magic numbers
         np.random.seed(42)
-        n_samples = 250
+        n_samples = 74
 
         # Randomly select 90 indices for the test set
         test_indices = np.random.choice(n_samples, 20, replace=False)
@@ -728,7 +728,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         for _ in range(batch_size):
             # Select a random index between 0 and 1080 (inclusive)
             
-            idx = random.choice(range(75, 220))
+            idx = random.choice(test_indices)
             file_path = f"../../../SchenkerDiff/data/schenker/processed/heterdatacleaned/processed/{idx}_processed.pt"
             
             # Load the pickle file containing a dictionary
@@ -742,7 +742,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             
             
             # Initialize an adjacency tensor for this sample
-            E_sample = torch.zeros((m, m, 3))
+            E_sample = torch.zeros((m, m, 20))
             # Fill in the edge attributes: iterate over each edge
             for i in range(data.edge_index.shape[1]):
                 u = data.edge_index[0, i].item()

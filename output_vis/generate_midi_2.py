@@ -115,7 +115,7 @@ def create_midi_from_graph(X, R, scale_degrees, scale_degree_to_midi, tempo_mult
                     pitch = candidate_prev
                 else:
                     # With higher probability (70%), choose the candidate closer to the central octave.
-                    if random.random() < 0.7:
+                    if random.random() < 0.8:
                         pitch = candidate_central
                     else:
                         pitch = candidate_prev
@@ -126,10 +126,10 @@ def create_midi_from_graph(X, R, scale_degrees, scale_degree_to_midi, tempo_mult
         prev_pitch = pitch
         
         # Retrieve duration and offset from R.
-        duration = R[i][-2]
-        offset_norm = R[i][-1]
-        if i > 0 and offset_norm != R[i - 1][-1]:
-            offset += R[i-1][-2]
+        duration = R[i][-3]
+        offset_norm = R[i][-2]
+        if i > 0 and offset_norm != R[i - 1][-2]:
+            offset += R[i-1][-3]
         start_time = offset
         end_time = offset + duration
         
@@ -181,11 +181,11 @@ def create_midi_from_graph(X, R, scale_degrees, scale_degree_to_midi, tempo_mult
 #         prev_pitch = pitch
         
 #         # The last two values in each row of R correspond to duration and offset.
-#         duration = R[i][-2]
-#         offset_norm = R[i][-1]
+#         duration = R[i][-3]
+#         offset_norm = R[i][-2]
 #         if i > 0:
-#             if offset_norm != R[i - 1][-1]:
-#                 offset += R[i-1][-2]
+#             if offset_norm != R[i - 1][-2]:
+#                 offset += R[i-2][-3]
 #         start_time = offset
 #         end_time = offset + duration
         
@@ -196,16 +196,106 @@ def create_midi_from_graph(X, R, scale_degrees, scale_degree_to_midi, tempo_mult
 #     pm.write(output_file)
 #     print(f"MIDI file written to {output_file}")
 
+import math
+import pretty_midi
+import random
+
+def create_midi_from_graph_octaves(X, R, scale_degrees, scale_degree_to_midi,
+                                   tempo_multiplier=1.0,
+                                   output_file='output.mid'):
+    """
+    Like before, but uses these R‐columns:
+       duration    = R[i][-6]
+       offset_norm = R[i][-5]
+       voice_low   = R[i][-2]
+    and spaces voices by octaves, centers each voice on its own octave,
+    tracks prev_pitch per-voice, and downshifts an octave if any note >127.
+    """
+    # map each distinct low_to_high norm → a voice index
+    low_norms = sorted({ row[-2] for row in R })
+    voice_to_idx = { norm: idx for idx, norm in enumerate(low_norms) }
+
+    pm = pretty_midi.PrettyMIDI()
+    inst = pretty_midi.Instrument(program=0)
+
+    offset = 0.0
+    prev_by_voice = {}
+    central_pitch = 60  # middle‐C reference
+
+    for i, scale_idx in enumerate(X):
+        degree = scale_degrees[scale_idx]
+        base = scale_degree_to_midi[degree]
+
+        # unpack the new R‐fields
+        duration    = R[i][-5]
+        offset_norm = R[i][-4]
+        low_norm    = R[i][-2]
+
+        # which voice is this?
+        vidx = voice_to_idx[low_norm]
+        prev = prev_by_voice.get(vidx)
+
+        # compute the two octave‐candidates around prev (or base)
+        if prev is None:
+            low_cand = base
+        else:
+            low_cand = base + 12 * math.floor((prev - base) / 12)
+        high_cand = low_cand + 12
+
+        # pick raw_pitch, biasing toward voice‐specific center when large leaps
+        if prev is None:
+            raw = base
+        else:
+            prev_best = low_cand if abs(low_cand - prev) <= abs(high_cand - prev) else high_cand
+            voice_center = central_pitch + 12 * vidx
+            cent_best = low_cand if abs(low_cand - voice_center) <= abs(high_cand - voice_center) else high_cand
+
+            # if base > scale_degree_to_midi.get('E', 64):
+            raw = cent_best if (prev_best == cent_best or random.random() < 0.9) else prev_best
+            # else:
+                # raw = prev_best
+
+        # bump by full‐octaves per voice index
+        pitch = raw 
+
+        # timing: if offset_norm changed, advance by the previous duration
+        if i > 0 and offset_norm != R[i-1][-4]:
+            offset += R[i-1][-5]
+        start = offset
+        end   = offset + duration
+
+        inst.notes.append(pretty_midi.Note(
+            velocity=60,
+            pitch=int(round(pitch)),
+            start=start,
+            end=end
+        ))
+
+    # ensure no pitch >127 by dropping as many full octaves as needed
+    # max_pitch = max(n.pitch for n in inst.notes)
+    # if max_pitch > 127:
+    #     # how many octaves (12 semitones) to drop?
+    #     octaves_down = math.ceil((max_pitch - 127) / 12)
+    for n in inst.notes:
+        n.pitch = max(0, n.pitch - 12)
+
+    pm.instruments.append(inst)
+    pm.write(output_file)
+    print(f"MIDI file written to {output_file}")
+
+
 if __name__ == '__main__':
     # Define the scale degrees and mapping to MIDI pitches (for a base octave, with tonic at middle C).
-    scale_degrees = [
-        'A2', 'm2', 'P8', 'A6',
+    scale_degrees =  [
+        'A2', 'm2', 'P8', 'A6', 'A1', 'A5',
         'm7', 'M2', 'm6', 'M7',
         'm3', 'M3', 'P5', 'd7',
         'P4', 'M6', 'A4', 'd5'
     ]
+
     scale_degree_to_midi = {
         'P8': 60,    # tonic at middle C
+        'A1': 60 + 1,
         'm2': 60 + 1,  # 61
         'M2': 60 + 2,  # 62
         'm3': 60 + 3,  # 63
@@ -215,6 +305,7 @@ if __name__ == '__main__':
         'A4': 60 + 6,  # 66
         'd5': 60 + 6,  # 66 (diminished 5th, same as A4)
         'P5': 60 + 7,  # 67
+        'A5': 60 + 8,  
         'm6': 60 + 8,  # 68
         'M6': 60 + 9,  # 69
         'd7': 60 + 9,  # 69 (diminished 7th, same as M6)
@@ -236,4 +327,4 @@ if __name__ == '__main__':
         print("E =", E)
         print("R =", R)
         output_file = f'output_graph_{idx+1}.mid'
-        create_midi_from_graph(X, R, scale_degrees, scale_degree_to_midi, output_file=output_file, tempo_multiplier=3.0)
+        create_midi_from_graph_octaves(X, R, scale_degrees, scale_degree_to_midi, output_file=output_file, tempo_multiplier=3.0)

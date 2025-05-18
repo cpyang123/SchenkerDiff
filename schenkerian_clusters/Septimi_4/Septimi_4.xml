@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<?xml version='1.0' encoding='utf-8'?>
 <score-partwise version="4.0">
   <movement-title>Septimi_4.mxl</movement-title>
   <identification>
@@ -7,11 +6,11 @@
     <encoding>
       <software>Finale v27.2 for Windows</software>
       <encoding-date>2024-05-23</encoding-date>
-      <supports attribute="new-system" element="print" type="yes" value="yes"/>
-      <supports attribute="new-page" element="print" type="yes" value="yes"/>
-      <supports element="accidental" type="yes"/>
-      <supports element="beam" type="yes"/>
-      <supports element="stem" type="yes"/>
+      <supports attribute="new-system" element="print" type="yes" value="yes" />
+      <supports attribute="new-page" element="print" type="yes" value="yes" />
+      <supports element="accidental" type="yes" />
+      <supports element="beam" type="yes" />
+      <supports element="stem" type="yes" />
     </encoding>
   </identification>
   <defaults>
@@ -56,8 +55,8 @@
       <distance type="hyphen">120</distance>
       <distance type="beam">7.5</distance>
     </appearance>
-    <music-font font-family="Finale Maestro,engraved" font-size="19.9"/>
-    <word-font font-family="Times New Roman" font-size="10"/>
+    <music-font font-family="Finale Maestro,engraved" font-size="19.9" />
+    <word-font font-family="Times New Roman" font-size="10" />
   </defaults>
   <credit page="1">
     <credit-type>title</credit-type>
@@ -85,7 +84,7 @@
       </midi-instrument>
     </score-part>
   </part-list>
-  <!--=========================================================-->
+  
   <part id="P1">
     <measure number="1" width="460">
       <print>
@@ -120,11 +119,11 @@
       </attributes>
       <sound tempo="120">
         <swing>
-          <straight/>
+          <straight />
         </swing>
       </sound>
       <note>
-        <rest measure="yes"/>
+        <rest measure="yes" />
         <duration>16</duration>
         <voice>1</voice>
         <staff>1</staff>
@@ -140,7 +139,7 @@
         <duration>6</duration>
         <voice>2</voice>
         <type>quarter</type>
-        <dot/>
+        <dot />
         <stem default-y="43.5">up</stem>
         <staff>2</staff>
       </note>
@@ -242,7 +241,7 @@
         <staff>2</staff>
       </note>
     </measure>
-    <!--=======================================================-->
+    
     <measure number="2" width="299">
       <note default-x="16">
         <pitch>
@@ -257,14 +256,14 @@
         <staff>1</staff>
       </note>
       <note default-x="78">
-        <rest/>
+        <rest />
         <duration>4</duration>
         <voice>1</voice>
         <type>quarter</type>
         <staff>1</staff>
       </note>
       <note default-x="141">
-        <rest/>
+        <rest />
         <duration>8</duration>
         <voice>1</voice>
         <type>half</type>
@@ -361,10 +360,10 @@
         <staff>2</staff>
       </note>
     </measure>
-    <!--=======================================================-->
+    
     <measure number="3" width="265">
       <note>
-        <rest measure="yes"/>
+        <rest measure="yes" />
         <duration>16</duration>
         <voice>1</voice>
         <staff>1</staff>
@@ -385,21 +384,21 @@
         <staff>2</staff>
       </note>
       <note default-x="61">
-        <rest/>
+        <rest />
         <duration>2</duration>
         <voice>2</voice>
         <type>eighth</type>
         <staff>2</staff>
       </note>
       <note default-x="99">
-        <rest/>
+        <rest />
         <duration>4</duration>
         <voice>2</voice>
         <type>quarter</type>
         <staff>2</staff>
       </note>
       <note default-x="157">
-        <rest/>
+        <rest />
         <duration>8</duration>
         <voice>2</voice>
         <type>half</type>
@@ -410,5 +409,5 @@
       </barline>
     </measure>
   </part>
-  <!--=========================================================-->
+  
 </score-partwise>

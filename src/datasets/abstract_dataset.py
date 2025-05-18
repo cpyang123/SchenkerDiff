@@ -20,12 +20,14 @@ class AbstractDataModule(LightningDataset):
     def __getitem__(self, idx):
         return self.train_dataset[idx]
 
-    def node_counts(self, max_nodes_possible=300):
+    def node_counts(self, max_nodes_possible=400):
         all_counts = torch.zeros(max_nodes_possible)
         for loader in [self.train_dataloader(), self.val_dataloader()]:
             for data in loader:
                 unique, counts = torch.unique(data.batch, return_counts=True)
                 for count in counts:
+                    if count > max_nodes_possible:
+                        print(data)
                     all_counts[count] += 1
         max_index = max(all_counts.nonzero())
         all_counts = all_counts[:max_index + 1]

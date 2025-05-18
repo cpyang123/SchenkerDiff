@@ -12,8 +12,11 @@ import glob
 import pickle
 from copy import deepcopy
 from pathlib import Path
+import math
 
 import music21
+import re
+from music21 import key, converter
 
 import music21.converter
 import networkx as nx
@@ -23,8 +26,9 @@ from torch_geometric.data import Dataset, Data
 import src.pyScoreParser.score_as_graph as score_graph
 from src.datasets.data_maps import *
 from errors import PickledError
-from src.pyScoreParser.musicxml_parser.mxp import MusicXMLDocument
+from src.pyScoreParser.musicxml_parser.mxp import MusicXMLDocument, exception
 from src.pyScoreParser.musicxml_parser.mxp.note import Note
+
 import torch.nn.functional as F
 
 from src.schenker_gnn.for_diffusion.infer_structure_from_rhythm import load_score, extract_structure_sparse
@@ -67,16 +71,18 @@ class SchenkerGraphDataset(InMemoryDataset):
     @property
     def processed_file_names(self):
         np.random.seed(42)
-        n_samples = 74
+        n_samples = 150
 
         # Randomly select 90 indices for the test set
-        test_indices = np.random.choice(n_samples, 20, replace=False)
+        test_indices = np.random.choice(n_samples, 30, replace=False)
 
         if self.test_mode:
             return [f'{i}_processed.pt' for i in test_indices]
 
         # For training, use the complement of the test indices
-        train_indices = np.setdiff1d(np.arange(n_samples), test_indices)
+        train_indices = np.setdiff1d(np.arange(n_samples), test_indices)[5:]
+        if self.split == 'ture':
+            return [f'{i}_processed.pt' for i in range(9)]
         return [f'{i}_processed.pt' for i in train_indices]
 
     def download(self):
@@ -90,7 +96,7 @@ class SchenkerGraphDataset(InMemoryDataset):
 
 
 class SchenkerGraphDataModule(AbstractDataModule):
-    def __init__(self, cfg, n_graphs=200):
+    def __init__(self, cfg, is_tune = False, n_graphs=200):
         self.cfg = cfg
         self.datadir = cfg.dataset.datadir
         base_path = pathlib.Path(os.path.realpath(__file__)).parents[2]
@@ -103,15 +109,21 @@ class SchenkerGraphDataModule(AbstractDataModule):
             names = file.readlines()
         names = [line.strip() for line in names if line[0] != "#"]
 
-        datasets = {'train': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
-                                                 split='train', root=root_path),
-                    'val': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
-                                        split='val', root=root_path),
-                    'test': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
-                                        split='test', root=root_path)}
-
-        
-
+        if is_tune: 
+            datasets = {'train': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
+                                                 split='tune', root=root_path),
+                        'val': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
+                                            split='val', root=root_path),
+                        'test': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
+                                            split='test', root=root_path)}
+        else:
+            datasets = {'train': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
+                                                    split='train', root=root_path),
+                        'val': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
+                                            split='val', root=root_path),
+                        'test': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
+                                            split='test', root=root_path)}
+            
         super().__init__(cfg, datasets)
         self.inner = self.train_dataset
 
@@ -133,9 +145,10 @@ class SchenkerDatasetInfos(AbstractDatasetInfos):
 
 
 INTERVAL_EDGES = [1, 2, 3, 4, 5, 8]
-NUM_DEPTHS = 7
+NUM_DEPTHS = 12
 # NUM_FEATURES = 42
-NUM_FEATURES = 16
+NUM_FEATURES = 18
+NUM_EDGE_TYPES = 25
 MAX_LEN = 40
 INCLUDE_GLOBAL_NODES = False
 
@@ -156,6 +169,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
         root: where my dataset should be stored: it will automatically saved at root/processed
         """
         self.test_mode = False if split == 'train' else True
+        self.fine_tune = False if split != 'tune' else True
         self.voice_mode = voice_mode
         self.train_names = train_names
         self.include_depth_edges = include_depth_edges
@@ -192,16 +206,19 @@ class SchenkerDiffHeteroGraphData(Dataset):
     @property
     def processed_file_names(self):
         np.random.seed(42)
-        n_samples = 74
+        n_samples = 150
 
         # Randomly select 90 indices for the test set
-        test_indices = np.random.choice(n_samples, 5, replace=False)
+        test_indices = np.random.choice(n_samples, 30, replace=False)
 
         if self.test_mode:
             return [f'{i}_processed.pt' for i in test_indices]
 
         # For training, use the complement of the test indices
-        train_indices = np.setdiff1d(np.arange(n_samples), test_indices)
+        train_indices = np.setdiff1d(np.arange(n_samples), test_indices)[5:]
+
+        if self.fine_tune:
+            return [f'{i}_processed.pt' for i in range(9)]
         return [f'{i}_processed.pt' for i in train_indices]
 
     @staticmethod
@@ -254,20 +271,26 @@ class SchenkerDiffHeteroGraphData(Dataset):
         hetero_data = hetero_dict['data']
         x =  hetero_data['note']['x']
         r = hetero_data['note']['r']
-        if hetero_dict['s_edge_attr'] is None or hetero_dict['s_edge_attr'] == []:
-            s_attr = torch.empty((0, 1))
-        else:
-            s_attr = hetero_dict['s_edge_attr'].unsqueeze(-1)
 
-        t_edges = hetero_dict['t_edges']
-        b_edges = hetero_dict['b_edges'] 
+        # Add depth information to the R matrix
+        # make a zero‐column of shape [..., 1]
 
-        # For s_edge_index: if None, create an empty tensor.
-        # Often, edge indices are expected to have shape (2, num_edges), so we use (2, 0) with type long.
-        if hetero_dict['s_edge_index'] is None or hetero_dict['s_edge_attr'] == []:
-            s_inx = torch.empty((2, 0), dtype=torch.long)
-        else:
-            s_inx = hetero_dict['s_edge_index']
+        zeros = torch.zeros(*r.shape[:-1], 1, dtype=r.dtype, device=r.device)
+
+        # concatenate on the last dim
+        r = torch.cat([r, zeros], dim=-1)  # now shape [..., D+1]
+        # if hetero_dict['s_edge_attr'] is None or hetero_dict['s_edge_attr'] == []:
+        #     s_attr = torch.empty((0, 1))
+        # else:
+        #     s_attr = hetero_dict['s_edge_attr'].unsqueeze(-1)
+
+
+        # # For s_edge_index: if None, create an empty tensor.
+        # # Often, edge indices are expected to have shape (2, num_edges), so we use (2, 0) with type long.
+        # if hetero_dict['s_edge_index'] is None or hetero_dict['s_edge_attr'] == []:
+        #     s_inx = torch.empty((2, 0), dtype=torch.long)
+        # else:
+        #     s_inx = hetero_dict['s_edge_index']
         
         edge_indices = []
         edge_attrs = []
@@ -276,20 +299,65 @@ class SchenkerDiffHeteroGraphData(Dataset):
         one_hot_dict = {edge_type: idx for idx, edge_type in enumerate(edge_types)}
         # print(one_hot_dict)
         
-        for edge_type in edge_types:
-            edge_index = hetero_data[edge_type]['edge_index']
-            edge_indices.append(edge_index)
+        existing = set()
+        edge_indices = []
+        edge_attrs = []
 
-            # Create one-hot encoding for the edge type
-            one_hot = torch.zeros(20)
+        for edge_type in edge_types:
+            edge_index = hetero_data[edge_type]['edge_index']  # shape [2, E]
+            src, dst = edge_index[0], edge_index[1]
+
+            # collect the indices of columns we haven't seen
+            new_cols = []
+            for i in range(edge_index.size(1)):
+                u, v = int(src[i]), int(dst[i])
+                
+                if (u, v) not in existing:
+
+                    # # Add depth information to R
+                    m = re.search(r'\d+', str(edge_type))
+                    if not m:
+                        pass
+                    else:
+                        num = int(m.group(0))
+                        if u >= r.shape[0] or v >= r.shape[0]:
+                            print(hetero_dict['name'])
+                        if r[u, -1].item() == 0:
+                            # make sure new_val is a tensor on the same device/dtype as r
+                            r[u, -1] = torch.tensor(num, dtype=r.dtype, device=r.device)
+                        if r[v, -1].item() == 0:
+                            # make sure new_val is a tensor on the same device/dtype as r
+                            r[v, -1] = torch.tensor(num, dtype=r.dtype, device=r.device)
+
+                    existing.add((u, v))
+                    new_cols.append(i)
+
+            # if there are no new edges, skip
+            if not new_cols:
+                continue
+
+            # build a filtered edge_index of shape [2, len(new_cols)]
+            idx = torch.tensor(new_cols, dtype=torch.long)
+            filtered_ei = edge_index[:, idx]
+            edge_indices.append(filtered_ei)
+
+            # one‐hot for this edge_type
+            one_hot = torch.zeros(NUM_EDGE_TYPES)
             one_hot[one_hot_dict[edge_type]] = 1
-            edge_attr = one_hot.repeat(edge_index.size()[1], 1)  # Repeat for each edge
+            # repeat one_hot for each new edge
+            edge_attr = one_hot.repeat(filtered_ei.size(1), 1)
             edge_attrs.append(edge_attr)
 
         edge_indices = torch.cat(edge_indices, dim=1)  
         edge_attrs = torch.cat(edge_attrs, dim=0) 
-        # padded_edge_attrs = F.pad(edge_attrs, (0, 30 - edge_attrs.size()[1]), mode='constant', value=0)
-        # padded_edge_attrs = edge_attrs
+
+        # Normalize the depth dimension in the R tensor:
+        # 1. grab the last‑dimension values
+        depth_dim = r[:, -1]
+        max_val = depth_dim.max()
+        if max_val != 0:
+            # in‑place replace the last column with normalized values
+            r[:, -1] = depth_dim / max_val
         
         assert torch.all((x == 0) | (x == 1)), "Tensor contains values other than 0 or 1."
         data = Data(x=x, edge_index=edge_indices, edge_attr=edge_attrs, \
@@ -494,14 +562,16 @@ class SchenkerDiffHeteroGraphData(Dataset):
 
     @staticmethod
     def add_voice_and_depth_edges(pkl_file, edge_indices):
-        with open(pkl_file, 'rb') as f:
-            data_dict = pickle.load(f)
 
-        for voice, edge_lists in data_dict.items():
-            for i in range(NUM_DEPTHS):
-                edge_indices[f'{"treble" if voice[0] == "t" else "bass"}_depth{i}'] = data_dict[voice][i] \
-                    if i < len(data_dict[voice]) \
-                    else []
+        if pkl_file:
+            with open(pkl_file, 'rb') as f:
+                data_dict = pickle.load(f)
+
+            for voice, edge_lists in data_dict.items():
+                for i in range(NUM_DEPTHS):
+                    edge_indices[f'{"treble" if voice[0] == "t" else "bass"}_depth{i}'] = data_dict[voice][i] \
+                        if i < len(data_dict[voice]) \
+                        else []
 
         return edge_indices
 
@@ -529,21 +599,65 @@ class SchenkerDiffHeteroGraphData(Dataset):
                                   f"tonic: {tonic.name} \n"
                                   f"pitches: {[p.name for p in pitches]}")
         return intervals_mapped
+    
+    @staticmethod
+    def encode_voice_positions(notes):
+        """
+        Given a list of notes (each with a .voice attribute),
+        returns two lists of length len(notes):
+        - low_to_high: 0.0 for the lowest voice up to 1.0 for the highest
+        - high_to_low: 1.0 for the lowest voice down to 0.0 for the highest
+
+        If there’s only one voice, low_to_high will be all 0.0 and high_to_low all 1.0.
+
+        :param notes: list of note objects with a .voice attribute
+        :return: (low_to_high, high_to_low)
+        """
+        # 1. Find all distinct voices and sort them (lowest → highest)
+        unique_voices = sorted({note.voice for note in notes})
+        num_voices = len(unique_voices)
+
+        # 2. Build a mapping: voice → index (0 for lowest, num_voices-1 for highest)
+        voice_to_index = {voice: idx for idx, voice in enumerate(unique_voices)}
+
+        # 3. Generate the two encodings
+        low_to_high = []
+        high_to_low = []
+        if num_voices > 1:
+            for note in notes:
+                idx = voice_to_index[note.voice]
+                # normalize into [0,1]
+                norm = idx / (num_voices - 1)
+                low_to_high.append(norm)
+                high_to_low.append(1.0 - norm)
+        else:
+            # edge case: only one voice
+            low_to_high = [0.0] * len(notes)
+            high_to_low = [1.0] * len(notes)
+
+        return low_to_high, high_to_low
+
 
     @staticmethod
     def process_file_nodes(hetero_data, pyscoreparser_notes, key_signature: music21.key.Key, include_global_nodes=INCLUDE_GLOBAL_NODES):
         offsets = [note.state_fixed.time_position for note in pyscoreparser_notes]
         durations = [note.note_duration.seconds for note in pyscoreparser_notes]
 
+        low_to_high, high_to_low = SchenkerDiffHeteroGraphData.encode_voice_positions(pyscoreparser_notes)
+
         rhythmic_features = {
             "metric_strength": SchenkerDiffHeteroGraphData.get_metric_strengths(pyscoreparser_notes),
             "duration": np.array([duration / np.max(durations) for duration in durations]),
             "offsets": np.array([offset / np.max(offsets) for offset in offsets]),
+            "voice_high_low": np.array([ encoding for encoding in high_to_low]),
+            "voice_low_high": np.array([ encoding for encoding in low_to_high]),
         }
 
         rhythmic_features["metric_strength"] = SchenkerDiffHeteroGraphData.one_hot_convert(rhythmic_features["metric_strength"], 6)
         rhythmic_features["duration"] = SchenkerDiffHeteroGraphData.to_float_tensor(rhythmic_features["duration"]).unsqueeze(1)
         rhythmic_features["offsets"] = SchenkerDiffHeteroGraphData.to_float_tensor(rhythmic_features["offsets"]).unsqueeze(1)
+        rhythmic_features["voice_high_low"] = SchenkerDiffHeteroGraphData.to_float_tensor(rhythmic_features["voice_high_low"]).unsqueeze(1)
+        rhythmic_features["voice_low_high"] = SchenkerDiffHeteroGraphData.to_float_tensor(rhythmic_features["voice_low_high"]).unsqueeze(1)
 
         node_features = {
             # "pitch_class": [PITCH_CLASS_MAP[note.pitch[0]] for note in pyscoreparser_notes],
@@ -585,23 +699,169 @@ class SchenkerDiffHeteroGraphData(Dataset):
                 [n, num_actual_notes + i] for n in range(num_actual_notes)
             ]
         return edge_indices
+    
+    @staticmethod
+    def filter_non_overlapping(edges):
+        """
+        Given edges as pairs (u, v), treat each as an undirected interval [min(u,v), max(u,v)].
+        Returns a new list where any edge that overlaps a previously kept edge is discarded.
+        """
+        accepted = []
+        for u, v in edges:
+            a, b = sorted((u, v))
+            # check for any partial‐overlap with an accepted (c,d):
+            #   a < c < b < d  (new contains start of old)
+            # or c < a < d < b  (old contains start of new)
+            partial = False
+            for c, d in accepted:
+                if (a < c < b < d) or (c < a < d < b):
+                    partial = True
+                    break
+            if not partial:
+                accepted.append((a, b))
+        return accepted
+    
+    @staticmethod
+    def infer_edge_depths(edges):
+        """
+        Given a list of edges as (u,v) with u<v and no partial overlaps,
+        returns a dict of edge and its depth
+        """
+        edges = SchenkerDiffHeteroGraphData.filter_non_overlapping(edges)
+
+        # sort the edges
+        edges_sorted = sorted(
+            edges,
+            key=lambda x: math.fabs(x[0] - x[1])
+        )
+        
+        # find maximum index within edges
+        max_u = max(u for u, _ in edges_sorted)
+        max_v = max(v for _, v in edges_sorted)
+        n = max(max_u, max_v)
+        nodes = (n + 1) * [-1]
+        
+        # itterate through from the smallest span edges to the largest
+        # and update the node depths one by one
+        for u, v in edges_sorted:
+            # if math.fabs(u - v) == 1:
+            nodes[u] = max(nodes[u], 0)
+            nodes[v] = max(nodes[v], 0)
+            if math.fabs(u - v) > 1:
+                nodes[u] = max(max(nodes[u+1:v]) + 1, nodes[u])
+                nodes[v] = max(max(nodes[u+1:v]) + 1, nodes[v])
+    
+        while True:
+            prev_nodes = [i for i in nodes]
+            for u, v in edges_sorted:
+                # if math.fabs(u - v) == 1:
+                nodes[u] = max(nodes[u], 0)
+                nodes[v] = max(nodes[v], 0)
+                if math.fabs(u - v) > 1:
+                    nodes[u] = max(max(nodes[u+1:v]) + 1, nodes[u])
+                    nodes[v] = max(max(nodes[u+1:v]) + 1, nodes[v])
+            if prev_nodes == nodes:
+                break
+            else:
+                prev_nodes = [i for i in nodes]
+
+
+        
+        # the depth of an edge is the smallest depth of its connected nodes
+        res = dict()
+        # for u, v in edges_sorted:
+        #     # if math.fabs(u - v) == 1:
+        #     #     if 1 in res:
+        #     #         if (u,v) not in res[1]:
+        #     #             res[1].append((u,v))
+        #     #     else:
+        #     #         res[1] = [(u,v)]
+        #     # else:
+        #     start = max(nodes[u+1:v] + [0]) + 1
+        #     end   = min(nodes[v], nodes[u]) + 1
+        #     for i in range(start, end):
+        #         # if i <= math.fabs(u - v):
+        #         if i in res:
+        #             if (u,v) not in res[i]:
+        #                 res[i].append((u,v))
+        #         else:
+        #             res[i] = [(u,v)]
+                
+
+        conn = {}
+        n = len(nodes)
+        max_h = max(nodes)
+        
+        # For each level ℓ, scan the base list and link consecutive nodes present at ℓ
+        for l in range(max_h + 1):
+            prev = None
+            for i in range(n):
+                if nodes[i] >= l:
+                    if prev is not None:
+                        conn.setdefault((prev, i), []).append(l)
+                    prev = i
+            # at end of this level, reset prev for next ℓ
+
+        for edge in edges_sorted:
+            for depth in conn[(edge)]:
+                if depth in res:
+                    res[depth].append(edge)
+                else:
+                    res[depth] = [edge]
+
+
+        # print(res)
+        return res
+
 
     @staticmethod
     def process_file_edges(
             hetero_data, notes_graph, pyscoreparser_notes, include_depth_edges,
-            pkl_file=None, include_global_nodes=INCLUDE_GLOBAL_NODES
+            pkl_file=None, include_global_nodes=INCLUDE_GLOBAL_NODES, xml_file = None
     ):
         edge_indices = {k: [] for k in [
-            # "onset",
+            "onset",
             # "voice",
             "forward",
             # "slur",
-            "sustain",
+            "melisma",
             # "rest",
         ]}
         # edge_indices = HeteroGraphData.add_interval_edges(pyscoreparser_notes, edge_indices)
+
         if include_depth_edges:
-            edge_indices = SchenkerDiffHeteroGraphData.add_voice_and_depth_edges(pkl_file, edge_indices)
+            # Check if we have analysis for the file, if not, use the prediction from SchenkerGNN
+            if pkl_file:
+                edge_indices = SchenkerDiffHeteroGraphData.add_voice_and_depth_edges(pkl_file, edge_indices)
+                # treble_edges = []
+                # for key, edges in edge_indices.items():
+                #     if key.startswith("treble_depth"):
+                #         treble_edges.extend(edges)
+                # treble_edges = {
+                #     (edge[0], edge[1])
+                #     for edge in treble_edges
+                # }
+                # treble_edges= list(treble_edges)
+                # treble_depths = SchenkerDiffHeteroGraphData.infer_edge_depths(treble_edges)
+
+            else:
+                # [TODO]: Re-enable when we have new schenkerlink modek
+                # analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
+                # clean_bass = [edge for edge in analysis_bass if edge not in analysis_treble]
+                # treble_depths = SchenkerDiffHeteroGraphData.infer_edge_depths(analysis_treble) if analysis_treble != [] else []
+                # bass_depths = SchenkerDiffHeteroGraphData.infer_edge_depths(clean_bass) if clean_bass != [] else []
+                # edge_dict = {"treble": treble_depths, "bass": bass_depths}
+                # for i in range(NUM_DEPTHS):
+                #     for voice in ["treble", "bass"]:
+                #         edge_indices[f'{voice}_depth{i}'] = edge_dict[voice][i] \
+                #             if i in edge_dict[voice] \
+                #             else []
+                for i in range(NUM_DEPTHS):
+                    for voice in ["treble", "bass"]:
+                        edge_indices[f'{voice}_depth{i}'] = []
+
+
+                # s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
         # if include_global_nodes:
         #     edge_indices = HeteroGraphData.add_global_node_edges(pyscoreparser_notes, edge_indices)
 
@@ -668,7 +928,10 @@ class SchenkerDiffHeteroGraphData(Dataset):
         xml = MusicXMLDocument(xml_file)
         pyscoreparser_notes = xml.get_notes()
         music21_score = music21.converter.parse(str(xml_file))
-        key_signature = music21_score.analyze('key')
+        # key_signature = music21_score.analyze('key')
+        ks_elem = music21_score.flat.getElementsByClass(music21.key.KeySignature)[0]
+        # 3) convert that KeySignature into a Key object
+        key_signature: music21.key.Key = ks_elem.asKey()
 
         hetero_data = HeteroData()
         hetero_data, notes_graph = SchenkerDiffHeteroGraphData.process_file_nodes(
@@ -693,8 +956,8 @@ class SchenkerDiffHeteroGraphData(Dataset):
             "name": str(xml_file).removesuffix('.xml'),
             "data": hetero_data,
             # "voice": ground_truth_voice,
-            "s_edge_index": s_edge_index,
-            "s_edge_attr": s_edge_attr
+            # "s_edge_index": s_edge_index,
+            # "s_edge_attr": s_edge_attr
         }
 
         return data_dict
@@ -704,7 +967,11 @@ class SchenkerDiffHeteroGraphData(Dataset):
         XMLDocument = MusicXMLDocument(str(xml_file))
         pyscoreparser_notes = XMLDocument.get_notes()
         music21_score = music21.converter.parse(str(xml_file))
-        key_signature = music21_score.analyze('key')
+        # key_signature = music21_score.analyze('key')
+        ks_elem = music21_score.flat.getElementsByClass(music21.key.KeySignature)[0]
+        # 3) convert that KeySignature into a Key object
+        key_signature: music21.key.Key = ks_elem.asKey()
+
 
         self.check_overlapping_notes(pyscoreparser_notes, str(xml_file).removesuffix('.xml'))
 
@@ -715,19 +982,23 @@ class SchenkerDiffHeteroGraphData(Dataset):
         hetero_data = SchenkerDiffHeteroGraphData.process_file_edges(
             hetero_data, notes_graph, pyscoreparser_notes,
             include_depth_edges=include_depth_edges, pkl_file=pkl_file, include_global_nodes=INCLUDE_GLOBAL_NODES,
+            xml_file = str(xml_file)
         )
 
         # ground_truth_voice = self.extract_voices(pkl_file, pyscoreparser_notes, include_depth_edges)
 
-        with open(pkl_file, 'rb') as f:
-            edges = pickle.load(f)
+        # with open(pkl_file, 'rb') as f:
+        #     edges = pickle.load(f)d
 
-        # Recursively unpack t_edges, b_edges to get the node indices under treble, bass voices resp.
-        # Union = both, complement of both = inner voice, other wise just whichever treble/bass
+        # # Recursively unpack t_edges, b_edges to get the node indices under treble, bass voices resp.
+        # # Union = both, complement of both = inner voice, other wise just whichever treble/bass
 
-        # Multilabel classification 3 -- treble, bass, inner (+ implicit class: treble + bass)
-        t_edges = edges["t_edges"][0]
-        b_edges = edges["b_edges"][0]
+        # # Multilabel classification 3 -- treble, bass, inner (+ implicit class: treble + bass)
+        # t_edges = edges["t_edges"][0]
+        # b_edges = edges["b_edges"][0]
+
+        # # analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
+        # # s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
 
         for key, value in hetero_data.items():
             # Check if value is None.
@@ -745,27 +1016,25 @@ class SchenkerDiffHeteroGraphData(Dataset):
         if hetero_data[('note', 'forward', 'note')]['edge_index'].numel() == 0:
             raise ValueError(f"Tensor for '{('node', 'forward', 'node')}' is empty.")
 
-        if 'asap-dataset' in str(xml_file):
-            analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
-            s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
-        else:
-            edge_index = {}
-            temp_edge_index = self.add_voice_and_depth_edges(pkl_file, edge_index)
-            s_edge_index = []
-            for edges_list in temp_edge_index.values():
-                s_edge_index.extend(edges_list)
-            s_edge_attr = [1] * len(s_edge_index)
-            s_edge_index = torch.tensor(s_edge_index, dtype=torch.long).t().contiguous()
-            s_edge_attr = torch.tensor(s_edge_attr, dtype=torch.float)
+        # if 'asap-dataset' in str(xml_file):
+        #     analysis_treble, analysis_bass, node_list = load_score(str(xml_file))
+        #     s_edge_index, s_edge_attr = extract_structure_sparse(analysis_treble, analysis_bass, node_list)
+        # else:
+        #     edge_index = {}
+        #     temp_edge_index = self.add_voice_and_depth_edges(pkl_file, edge_index)
+        #     s_edge_index = []
+        #     for edges_list in temp_edge_index.values():
+        #         s_edge_index.extend(edges_list)
+        #     s_edge_attr = [1] * len(s_edge_index)
+        #     s_edge_index = torch.tensor(s_edge_index, dtype=torch.long).t().contiguous()
+        #     s_edge_attr = torch.tensor(s_edge_attr, dtype=torch.float)
 
         data_dict = { 
             "name": str(xml_file).removesuffix('.xml'), 
             "data": hetero_data, 
             # "voice": ground_truth_voice,  
-            "s_edge_index": s_edge_index, 
-            "s_edge_attr": s_edge_attr ,
-            "t_edges": t_edges,
-            "b_edges": b_edges
+            # "s_edge_index": s_edge_index, 
+            # "s_edge_attr": s_edge_attr 
         }
 
         if save_data:
@@ -798,7 +1067,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
                                            include_depth_edges=self.include_depth_edges)
                     try:
                         result = future.result(timeout=10)
-                    except (EnharmonicError, ValueError,TypeError, KeyError, IndexError, music21.analysis.discrete.DiscreteAnalysisException, concurrent.futures.TimeoutError) as e:
+                    except (EnharmonicError, ValueError,TypeError, KeyError, IndexError, music21.analysis.discrete.DiscreteAnalysisException, exception.MusicXMLParseException, concurrent.futures.TimeoutError) as e:
                         print(f"Skipping {xml_file} due to error: {e}")
                         continue
                     index += 1

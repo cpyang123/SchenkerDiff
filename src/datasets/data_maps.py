@@ -52,7 +52,7 @@ PITCH_CLASS_MAP = {
 # }
 
 SCALE_DEGREE_MAP = [
-    'A2', 'm2', 'P8', 'A6',
+    'A2', 'm2', 'P8', 'A6', 'A1', 'A5',
     'm7', 'M2', 'm6', 'M7',
     'm3', 'M3', 'P5', 'd7',
     'P4', 'M6', 'A4', 'd5'

@@ -39,6 +39,6 @@ if __name__ == "__main__":
     # fp = "WTC_II_B_maj/WTC_II_B_maj"
     # pickle_clusters(fp + ".json")
     # print_pickle(fp + ".pkl")
-    parent_directory = "C:\\Users\\88ste\\PycharmProjects\\forks\\SchenkerGNN\\schenkerian_clusters"
+    parent_directory = "."
     pickle_all_clusters(parent_directory)
 

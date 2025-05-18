@@ -263,6 +263,7 @@ class GraphTransformer(nn.Module):
     def forward(self, X, E, r, y, node_mask): # add R Matrix here to represent Rythm 
         bs, n = X.shape[0], X.shape[1]
 
+        E_out = E.clone().detach()
         diag_mask = torch.eye(n)
         diag_mask = ~diag_mask.type_as(E).bool()
         diag_mask = diag_mask.unsqueeze(0).unsqueeze(-1).expand(bs, -1, -1, -1)
@@ -270,8 +271,6 @@ class GraphTransformer(nn.Module):
         X_to_out = X[..., :self.out_dim_X]
         E_to_out = E[..., :self.out_dim_E]
         y_to_out = y[..., :self.out_dim_y]
-
-    
 
         # X += self.mlp_in_r(r)
         # X_r = torch.cat((self.mlp_in_X(X), self.mlp_in_r(r)), dim=-1)
@@ -295,4 +294,8 @@ class GraphTransformer(nn.Module):
 
         E = 1/2 * (E + torch.transpose(E, 1, 2))
 
-        return src.utils.PlaceHolder(X=X, E=E, y=y).mask(node_mask)
+        return src.utils.PlaceHolder(X=X, E=E_out, y=y).mask(node_mask)
+
+
+
+

@@ -21,6 +21,7 @@ from src.datasets.schenker_dataset import SchenkerDiffHeteroGraphData
 from src.schenker_gnn.for_diffusion.infer_structure_from_rhythm import load_score, extract_structure_sparse
 
 from src.schenker_gnn.config import DEVICE
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 
 
 class CustomUnpickler(pickle.Unpickler):
@@ -145,9 +146,50 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
         return {'loss': loss}
 
+    # def configure_optimizers(self):
+    #     return torch.optim.AdamW(self.parameters(), lr=self.cfg.train.lr, amsgrad=True,
+    #                              weight_decay=self.cfg.train.weight_decay)
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=self.cfg.train.lr, amsgrad=True,
-                                 weight_decay=self.cfg.train.weight_decay)
+        # 1) build your optimizer as before
+        optimizer = torch.optim.AdamW(
+            self.parameters(),
+            lr=self.cfg.train.lr,
+            amsgrad=True,
+            weight_decay=self.cfg.train.weight_decay
+        )
+
+        # 2) wrap it in a CosineAnnealingWarmRestarts scheduler
+        # scheduler = CosineAnnealingWarmRestarts(
+        #     optimizer,
+        #     T_0=self.cfg.train.T_0,       # epochs until first restart
+        #     T_mult=self.cfg.train.T_mult, # multiply T_i by this after each restart
+        #     eta_min=getattr(self.cfg.train, 'min_lr', 0.0),
+        #     verbose='deprecated'
+        # )
+        # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        #     optimizer,
+        #     T_max=self.cfg.train.T_max,
+        #     eta_min=0,
+        #     verbose='deprecated'
+        # )
+
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
+            optimizer, 
+            max_lr=self.cfg.train.lr, 
+            epochs=self.cfg.train.n_epochs,
+            steps_per_epoch=self.trainer.estimated_stepping_batches
+        )
+
+        # 3) return both in Lightning’s dict format
+        return {
+            'optimizer': optimizer,
+            'lr_scheduler': {
+                'scheduler': scheduler,
+                'interval': 'step',    # calls scheduler.step() every epoch
+                'frequency': 1,
+                'name': 'one_cycle_lr'
+            }
+        }
 
     def on_fit_start(self) -> None:
         self.train_iterations = len(self.trainer.datamodule.train_dataloader())
@@ -401,6 +443,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                                                                                                 node_mask=node_mask)
         kl_x = (self.test_X_kl if test else self.val_X_kl)(prob_true.X, torch.log(prob_pred.X))
         kl_e = (self.test_E_kl if test else self.val_E_kl)(prob_true.E, torch.log(prob_pred.E))
+        # kl_e = 0
         return self.T * (kl_x + kl_e)
 
     def reconstruction_logp(self, t, X, E, r, node_mask):
@@ -742,7 +785,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             
             
             # Initialize an adjacency tensor for this sample
-            E_sample = torch.zeros((m, m, 20))
+            E_sample = torch.zeros((m, m, 25))
             # Fill in the edge attributes: iterate over each edge
             for i in range(data.edge_index.shape[1]):
                 u = data.edge_index[0, i].item()

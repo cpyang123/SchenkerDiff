@@ -159,13 +159,13 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         )
 
         # 2) wrap it in a CosineAnnealingWarmRestarts scheduler
-        # scheduler = CosineAnnealingWarmRestarts(
-        #     optimizer,
-        #     T_0=self.cfg.train.T_0,       # epochs until first restart
-        #     T_mult=self.cfg.train.T_mult, # multiply T_i by this after each restart
-        #     eta_min=getattr(self.cfg.train, 'min_lr', 0.0),
-        #     verbose='deprecated'
-        # )
+        scheduler = CosineAnnealingWarmRestarts(
+            optimizer,
+            T_0=self.cfg.train.T_0,       # epochs until first restart
+            T_mult=self.cfg.train.T_mult, # multiply T_i by this after each restart
+            eta_min=getattr(self.cfg.train, 'min_lr', 0.0),
+            verbose='deprecated'
+        )
         # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         #     optimizer,
         #     T_max=self.cfg.train.T_max,
@@ -173,21 +173,21 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         #     verbose='deprecated'
         # )
 
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer, 
-            max_lr=self.cfg.train.lr, 
-            epochs=self.cfg.train.n_epochs,
-            steps_per_epoch=self.trainer.estimated_stepping_batches
-        )
+        # scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        #     optimizer, 
+        #     max_lr=self.cfg.train.lr, 
+        #     epochs=self.cfg.train.n_epochs,
+        #     steps_per_epoch=self.trainer.estimated_stepping_batches
+        # )
 
         # 3) return both in Lightning’s dict format
         return {
             'optimizer': optimizer,
             'lr_scheduler': {
                 'scheduler': scheduler,
-                'interval': 'step',    # calls scheduler.step() every epoch
+                'interval': 'epoch',    # calls scheduler.step() every epoch
                 'frequency': 1,
-                'name': 'one_cycle_lr'
+                'name': 'cosine_restart'
             }
         }
 

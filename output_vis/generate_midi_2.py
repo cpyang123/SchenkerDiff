@@ -290,10 +290,10 @@ def create_midi_from_graph_octaves(X, R, scale_degrees, scale_degree_to_midi,
         last_duration[vidx]        = duration
 
     # ensure no pitch >127 by dropping full octaves
-    for n in inst.notes:
-        while n.pitch > 127:
-            n.pitch -= 12
-        n.pitch = max(0, n.pitch)
+    # for n in inst.notes:
+    #     while n.pitch > 127:
+    #         n.pitch -= 12
+    #     n.pitch = max(0, n.pitch)
 
     pm.instruments.append(inst)
     pm.write(output_file)

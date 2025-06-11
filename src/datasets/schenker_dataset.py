@@ -821,7 +821,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
     ):
         edge_indices = {k: [] for k in [
             "onset",
-            # "voice",
+            "voice",
             "forward",
             # "slur",
             "melisma",

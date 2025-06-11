@@ -71,7 +71,7 @@ class SchenkerGraphDataset(InMemoryDataset):
     @property
     def processed_file_names(self):
         np.random.seed(42)
-        n_samples = 150
+        n_samples = 350
 
         # Randomly select 90 indices for the test set
         test_indices = np.random.choice(n_samples, 30, replace=False)
@@ -206,7 +206,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
     @property
     def processed_file_names(self):
         np.random.seed(42)
-        n_samples = 150
+        n_samples = 350
 
         # Randomly select 90 indices for the test set
         test_indices = np.random.choice(n_samples, 30, replace=False)

@@ -297,7 +297,7 @@ def compute_posterior_distribution(M, M_t, Qt_M, Qsb_M, Qtb_M):
 
 def compute_batched_over0_posterior_distribution(X_t, Qt, Qsb, Qtb):
     """ M: X or E
-        Compute xt @ Qt.T * x0 @ Qsb / x0 @ Qtb @ xt.T for each possible value of x0
+        Compute xt @ Qt.T * x0 @ Qsb / x0 @ Qtb @ xt.T for each possible value of x0 
         X_t: bs, n, dt          or bs, n, n, dt
         Qt: bs, d_t-1, dt
         Qsb: bs, d0, d_t-1

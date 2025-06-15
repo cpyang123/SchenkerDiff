@@ -854,12 +854,13 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         # Neural net predictions
         noisy_data = {'X_t': X_t, 'E_t': E_t, 'y_t': y_t, 't': t, 'node_mask': node_mask}
         extra_data = self.compute_extra_data(noisy_data)
-        pred = self.forward(noisy_data, extra_data, r, node_mask)
+        pred = self.forward(noisy_data, extra_data, r, node_mask) # pred is the clean graph estimate (G_0)
 
         # Normalize predictions
         pred_X = F.softmax(pred.X, dim=-1)               # bs, n, d0
         pred_E = F.softmax(pred.E, dim=-1)               # bs, n, n, d0
 
+        # This is the forward posterior q(G_t-1 | G_t, G_0)
         p_s_and_t_given_0_X = diffusion_utils.compute_batched_over0_posterior_distribution(X_t=X_t,
                                                                                            Qt=Qt.X,
                                                                                            Qsb=Qsb.X,
@@ -873,6 +874,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         weighted_X = pred_X.unsqueeze(-1) * p_s_and_t_given_0_X         # bs, n, d0, d_t-1
         unnormalized_prob_X = weighted_X.sum(dim=2)                     # bs, n, d_t-1
         unnormalized_prob_X[torch.sum(unnormalized_prob_X, dim=-1) == 0] = 1e-5
+
+        # "slightly denoised sample probability" p_theta(G_t-1 | G_t)
         prob_X = unnormalized_prob_X / torch.sum(unnormalized_prob_X, dim=-1, keepdim=True)  # bs, n, d_t-1
 
         pred_E = pred_E.reshape((bs, -1, pred_E.shape[-1]))

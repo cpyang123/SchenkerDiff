@@ -606,7 +606,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         z_T = diffusion_utils.sample_discrete_feature_noise(limit_dist=self.limit_dist, node_mask=node_mask)
         X, _, y = z_T.X, z_T.E, z_T.y
         
-        E_transpose = E.permute(0, 2, 1, 3)  # Shape remains (bs, n_nodes, n_nodes, 2)
+        E_transpose = E.permute(0, 2, 1, 3)  # Shape remains (bs, n_nodes, n_nodes, num_edges)
 
         # Symmetrize using max operation (ensures strongest connection remains)
         E = torch.maximum(E, E_transpose).to(DEVICE)     
@@ -763,7 +763,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         # get samples from OOS distribution
         # [TODO]: take these from cfg files instead having magic numbers
         np.random.seed(42)
-        n_samples = 74
+        n_samples = 350
 
         # Randomly select 90 indices for the test set
         test_indices = np.random.choice(n_samples, 20, replace=False)
@@ -785,7 +785,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             
             
             # Initialize an adjacency tensor for this sample
-            E_sample = torch.zeros((m, m, 25))
+            E_sample = torch.zeros((m, m, 30))
             # Fill in the edge attributes: iterate over each edge
             for i in range(data.edge_index.shape[1]):
                 u = data.edge_index[0, i].item()

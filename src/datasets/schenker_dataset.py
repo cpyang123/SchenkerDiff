@@ -148,7 +148,7 @@ INTERVAL_EDGES = [1, 2, 3, 4, 5, 8]
 NUM_DEPTHS = 12
 # NUM_FEATURES = 42
 NUM_FEATURES = 18
-NUM_EDGE_TYPES = 25
+NUM_EDGE_TYPES = 30
 MAX_LEN = 40
 INCLUDE_GLOBAL_NODES = False
 
@@ -343,7 +343,8 @@ class SchenkerDiffHeteroGraphData(Dataset):
 
             # one‐hot for this edge_type
             one_hot = torch.zeros(NUM_EDGE_TYPES)
-            one_hot[one_hot_dict[edge_type]] = 1
+            # we'll add one so that we start from the first index instead, otherwise we'll miss an edge
+            one_hot[one_hot_dict[edge_type] + 1] = 1
             # repeat one_hot for each new edge
             edge_attr = one_hot.repeat(filtered_ei.size(1), 1)
             edge_attrs.append(edge_attr)

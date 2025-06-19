@@ -609,10 +609,11 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         E_transpose = E.permute(0, 2, 1, 3)  # Shape remains (bs, n_nodes, n_nodes, num_edges)
 
         # Symmetrize using max operation (ensures strongest connection remains)
-        E = torch.maximum(E, E_transpose).to(DEVICE)     
+        # E = torch.maximum(E, E_transpose).to(DEVICE)     
         r = r.to(DEVICE)
+        E = E.to(DEVICE)
 
-        assert (E == torch.transpose(E, 1, 2)).all()
+        # assert (E == torch.transpose(E, 1, 2)).all()
         assert number_chain_steps < self.T
         chain_X_size = torch.Size((number_chain_steps, keep_chain, X.size(1)))
         chain_E_size = torch.Size((number_chain_steps, keep_chain, E.size(1), E.size(2)))

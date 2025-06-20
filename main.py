@@ -1,4 +1,3 @@
-import graph_tool as gt
 import os
 import pathlib
 import warnings

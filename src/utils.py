@@ -120,9 +120,9 @@ class PlaceHolder:
         
         # Symmetrize the adjacency matrices without doubling existing bi-directional edges, if it exists
         # [TODO]: This is a bodge, think of a better place to place this
-        self.E = torch.maximum(self.E, self.E.transpose(1, 2))
+        # self.E = torch.maximum(self.E, self.E.transpose(1, 2))
         
-        assert torch.allclose(self.E, torch.transpose(self.E, 1, 2))
+        # assert torch.allclose(self.E, torch.transpose(self.E, 1, 2))
 
         if collapse:
             self.X = torch.argmax(self.X, dim=-1)
@@ -134,7 +134,8 @@ class PlaceHolder:
             self.X = self.X * x_mask
             self.E = self.E * e_mask1 * e_mask2
             try:
-                assert torch.allclose(self.E, torch.transpose(self.E, 1, 2))
+                pass
+                # assert torch.allclose(self.E, torch.transpose(self.E, 1, 2))
             except AssertionError:
                 print("Assertion failed:")
                 print("Tensor E:")

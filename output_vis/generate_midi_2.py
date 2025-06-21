@@ -278,7 +278,7 @@ def create_midi_from_graph_octaves(X, R, scale_degrees, scale_degree_to_midi,
 
         # append note
         inst.notes.append(pretty_midi.Note(
-            velocity=60,
+            velocity=40,
             pitch=pitch,
             start=start,
             end=end

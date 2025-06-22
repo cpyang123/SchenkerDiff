@@ -166,8 +166,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             optimizer,
             T_0=self.cfg.train.T_0,  # epochs until first restart
             T_mult=self.cfg.train.T_mult,  # multiply T_i by this after each restart
-            eta_min=getattr(self.cfg.train, 'min_lr', 0.0),
-            verbose='deprecated'
+            eta_min=getattr(self.cfg.train, 'min_lr', 0.0)
+            # verbose='deprecated'
         )
         # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         #     optimizer,

@@ -1,4 +1,5 @@
 import math
+from functools import reduce
 
 import torch
 import torch.nn as nn
@@ -11,6 +12,77 @@ from torch import Tensor
 import src.utils
 from src.diffusion import diffusion_utils
 from src.models.layers import Xtoy, Etoy, masked_softmax
+
+
+class RotaryPositionalEmbeddings(nn.Module):
+    """
+    Custom implementation of Rotary Position Embedding (RoPE).
+    """
+    def __init__(self, dim: int, max_seq_len: int = 4096, base: int = 10000):
+        super().__init__()
+        self.dim = dim
+        self.max_seq_len = max_seq_len
+        self.base = base
+        
+        # Precompute frequency matrix
+        inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
+        self.register_buffer('inv_freq', inv_freq)
+        
+    def forward(self, x: torch.Tensor, input_pos: torch.Tensor) -> torch.Tensor:
+        """
+        Apply rotary positional embedding to input tensor.
+        
+        Args:
+            x: Input tensor of shape [batch_size, seq_len, n_heads, head_dim]
+            input_pos: Position indices of shape [batch_size, seq_len]
+            
+        Returns:
+            Tensor with rotary positional embedding applied
+        """
+        batch_size, seq_len, n_heads, head_dim = x.shape
+        
+        # Handle odd dimensions by only applying RoPE to even portion
+        if head_dim % 2 != 0:
+            # Split into even and odd parts
+            x_even = x[..., :-1]  # All but last dimension
+            x_odd = x[..., -1:]   # Last dimension
+            head_dim_even = head_dim - 1
+        else:
+            x_even = x
+            x_odd = None
+            head_dim_even = head_dim
+        
+        # Skip RoPE if dimension is too small
+        if head_dim_even < 2:
+            return x
+            
+        # Split even portion into pairs for rotation
+        x_pairs = x_even.view(batch_size, seq_len, n_heads, head_dim_even // 2, 2)
+        
+        # Create position encodings
+        pos_seq = input_pos.unsqueeze(-1).float()  # [batch_size, seq_len, 1]
+        freqs = torch.outer(pos_seq.flatten(), self.inv_freq[:head_dim_even//2])  # [batch_size * seq_len, dim//2]
+        freqs = freqs.view(batch_size, seq_len, -1)  # [batch_size, seq_len, dim//2]
+        
+        cos_pos = torch.cos(freqs).unsqueeze(2).unsqueeze(-1)  # [batch_size, seq_len, 1, dim//2, 1]
+        sin_pos = torch.sin(freqs).unsqueeze(2).unsqueeze(-1)  # [batch_size, seq_len, 1, dim//2, 1]
+        
+        # Apply rotation
+        x1, x2 = x_pairs[..., 0], x_pairs[..., 1]  # [batch_size, seq_len, n_heads, dim//2]
+        
+        # Rotate: [cos, -sin; sin, cos] * [x1; x2]
+        rotated_x1 = x1 * cos_pos.squeeze(-1) - x2 * sin_pos.squeeze(-1)
+        rotated_x2 = x1 * sin_pos.squeeze(-1) + x2 * cos_pos.squeeze(-1)
+        
+        # Recombine pairs
+        rotated_pairs = torch.stack([rotated_x1, rotated_x2], dim=-1)
+        rotated_even = rotated_pairs.view(batch_size, seq_len, n_heads, head_dim_even)
+        
+        # Concatenate back with odd dimension if it exists
+        if x_odd is not None:
+            return torch.cat([rotated_even, x_odd], dim=-1)
+        else:
+            return rotated_even
 
 
 class XEyTransformerLayer(nn.Module):
@@ -243,6 +315,15 @@ class GraphTransformer(nn.Module):
         
         # self.mlp_in_X_r = nn.Sequential(nn.Linear(hidden_dims['dr'] +  hidden_dims['dx'], hidden_dims['dx']), act_fn_in)
 
+        # Add RoPE for positional encoding
+        # Apply to concatenated X_r features
+        x_r_dim = input_dims['X'] + input_dims['r']
+        self.rope = RotaryPositionalEmbeddings(
+            dim=x_r_dim,  # dimension of concatenated X_r
+            max_seq_len=4096,
+            base=10000
+        )
+
         self.tf_layers = nn.ModuleList([XEyTransformerLayer(dx=hidden_dims['dx'],
                                                             de=hidden_dims['de'],
                                                             dy=hidden_dims['dy'],
@@ -260,7 +341,31 @@ class GraphTransformer(nn.Module):
         self.mlp_out_y = nn.Sequential(nn.Linear(hidden_dims['dy'], hidden_mlp_dims['y']), act_fn_out,
                                        nn.Linear(hidden_mlp_dims['y'], output_dims['y']))
 
-    def forward(self, X, E, r, y, node_mask): # add R Matrix here to represent Rythm 
+    def unnormalize_positions(self, normalized_pos):
+        """Scale normalized positions to smallest integers preserving ratios."""
+        batch_size, seq_len = normalized_pos.shape
+        position_indices = torch.zeros_like(normalized_pos, dtype=torch.long)
+        
+        for b in range(batch_size):
+            pos = normalized_pos[b]
+            
+            # Scale by precision factor and round to integers
+            precision = 10000
+            scaled = pos * precision
+            int_positions = scaled.round().long()
+            
+            # Find GCD to reduce to smallest integers
+            non_zero_positions = int_positions[int_positions > 0]
+            if len(non_zero_positions) > 1:
+                common_gcd = reduce(math.gcd, non_zero_positions.tolist())
+                if common_gcd > 1:
+                    int_positions = int_positions // common_gcd
+            
+            position_indices[b] = int_positions
+        
+        return position_indices
+
+    def forward(self, X, E, r, y, node_mask): # add R Matrix here to represent Rythm
         bs, n = X.shape[0], X.shape[1]
 
         E_out = E.clone().detach()
@@ -272,9 +377,24 @@ class GraphTransformer(nn.Module):
         E_to_out = E[..., :self.out_dim_E]
         y_to_out = y[..., :self.out_dim_y]
 
+        # Extract and unnormalize positional encoding from 8th column of r
+        normalized_pos = r[:, :, 7]  # Extract 8th column (0-indexed)
+        position_indices = self.unnormalize_positions(normalized_pos)
+
         # X += self.mlp_in_r(r)
         # X_r = torch.cat((self.mlp_in_X(X), self.mlp_in_r(r)), dim=-1)
         X_r = torch.cat((X, r), dim = -1)
+
+        # Apply RoPE to X_r before MLP processing
+        # Reshape for RoPE: [bs, n, 1, x_r_dim] (treating as single head)
+        X_r_rope_input = X_r.unsqueeze(2)
+        X_r_with_rope = self.rope(X_r_rope_input, input_pos=position_indices)
+        X_r = X_r_with_rope.squeeze(2)  # Back to [bs, n, x_r_dim]
+
+        # if config.etc.use_r:
+        #     # use r matrix
+        # else:
+        #     # don't
 
         new_E = self.mlp_in_E(E)
         new_E = (new_E + new_E.transpose(1, 2)) / 2
@@ -295,7 +415,3 @@ class GraphTransformer(nn.Module):
         E = 1/2 * (E + torch.transpose(E, 1, 2))
 
         return src.utils.PlaceHolder(X=X, E=E_out, y=y).mask(node_mask)
-
-
-
-

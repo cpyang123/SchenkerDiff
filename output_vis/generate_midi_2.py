@@ -212,7 +212,7 @@ def create_midi_from_graph_octaves(X, R, scale_degrees, scale_degree_to_midi,
     tracks prev_pitch and timing per-voice, and downshifts an octave if any note >127.
     """
     # map each distinct low_to_high norm → a voice index
-    low_norms = sorted({ row[-2] for row in R })
+    low_norms = sorted({ row[-3] for row in R })
     voice_to_idx = {
         norm: idx - math.floor(len(low_norms)/2)
         for idx, norm in enumerate(low_norms)
@@ -235,7 +235,7 @@ def create_midi_from_graph_octaves(X, R, scale_degrees, scale_degree_to_midi,
         # unpack R‐fields
         duration    = R[i][6]
         offset_norm = R[i][7]
-        low_norm    = R[i][-2]
+        low_norm    = R[i][-3]
 
         # voice index for this note
         vidx = voice_to_idx[low_norm]
@@ -258,7 +258,10 @@ def create_midi_from_graph_octaves(X, R, scale_degrees, scale_degree_to_midi,
             cent_best  = low_cand if abs(low_cand - voice_center) <= abs(high_cand - voice_center) else high_cand
 
             # mostly stick to voice‐center if it aligns, else small random bias
-            raw = cent_best if (prev_best == cent_best or random.random() < 0.9) else prev_best
+            if abs(prev_best - prev) > 3:
+                raw = cent_best if (prev_best == cent_best or random.random() < 0.9) else prev_best
+            else:
+                raw = prev_best
 
         pitch = int(round(raw))
 

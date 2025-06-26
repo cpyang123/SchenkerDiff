@@ -648,7 +648,8 @@ class SchenkerDiffHeteroGraphData(Dataset):
 
         rhythmic_features = {
             "metric_strength": SchenkerDiffHeteroGraphData.get_metric_strengths(pyscoreparser_notes),
-            "duration": np.array([duration / np.max(durations) for duration in durations]),
+            # "duration": np.array([duration / np.max(durations) for duration in durations]),
+            "duration": np.array(durations),
             "offsets": np.array([offset / np.max(offsets) for offset in offsets]),
             "voice_high_low": np.array([ encoding for encoding in high_to_low]),
             "voice_low_high": np.array([ encoding for encoding in low_to_high]),

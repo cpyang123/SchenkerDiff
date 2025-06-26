@@ -18,7 +18,7 @@ from src.metrics.abstract_metrics import SumExceptBatchMetric, SumExceptBatchKL,
 import src.utils
 from torch_geometric.utils import to_dense_batch
 from src.datasets.schenker_dataset import SchenkerDiffHeteroGraphData
-from src.rule_guidance import ParallelChecker
+from src.rule_guidance import ParallelChecker, DissonanceChecker
 from src.schenker_gnn.for_diffusion.infer_structure_from_rhythm import load_score, extract_structure_sparse
 
 from src.schenker_gnn.config import DEVICE
@@ -579,7 +579,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
     @torch.no_grad()
     def sample_batch(self, batch_id: int, batch_size: int, keep_chain: int, number_chain_steps: int,
-                     save_final: int, num_nodes=None):
+                     save_final: int, num_nodes=None, use_rules=True):
         """
         :param batch_id: int
         :param batch_size: int
@@ -634,7 +634,10 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             t_norm = t_array / self.T
 
             # Sample z_s
-            sampled_s, discrete_sampled_s = self.sample_p_zs_given_zt(s_norm, t_norm, X, E, r, y, node_mask)
+            if use_rules:
+                sampled_s, discrete_sampled_s = self.sample_p_zs_given_zt_with_rules(s_norm, t_norm, X, E, r, y, node_mask)
+            else:
+                sampled_s, discrete_sampled_s = self.sample_p_zs_given_zt(s_norm, t_norm, X, E, r, y, node_mask)
             X, _, y = sampled_s.X, sampled_s.E, sampled_s.y
 
             discrete_sampled_s_E, _ = self.apply_node_mask_E_r(E, r, node_mask)
@@ -781,7 +784,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             file_path = f"../../../SchenkerDiff/data/schenker/processed/heterdatacleaned/processed/{idx}_processed.pt"
 
             # Load the pickle file containing a dictionary
-            data_dict = torch.load(file_path)
+            data_dict = torch.load(file_path, weights_only=False)
 
             # Convert dictionary to a PyG Data object using the provided function
             data = SchenkerDiffHeteroGraphData.hetero_to_data(data_dict)
@@ -896,8 +899,9 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         if scg_kwargs is None:
             scg_kwargs = {
                 "num_samples": 8,
-                "rules": [ParallelChecker],
-                "num_rule_samples": 4  # How many to sample from clean probability dist to check for common rules
+                "rules": [ParallelChecker, DissonanceChecker],
+                "disallowed_intervals": [1, 2, 11],
+                "disallowed_parallels": [0, 7]
             }
 
         # find distribution for p_theta(G^t-1 | G^t)
@@ -929,7 +933,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             candidates.append((X_s, E_s))
             scores.append(score)
 
-        best_idx = torch.argmax(torch.stack(scores))
+        print(scores)
+        best_idx = torch.argmax(torch.tensor(scores))
         X_best, E_best = candidates[best_idx]
 
         out_one_hot = src.utils.PlaceHolder(X=X_best, E=E_best, y=torch.zeros(y_t.shape[0], 0))
@@ -943,7 +948,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         for rule_class in scg_kwargs["rules"]:
             rule_instance = rule_class(pred_i_X, pred_i_E, r, num_X_classes, num_E_classes, scg_kwargs)
             scores.append(rule_instance.calculate_score())
-        return torch.tensor(scores).mean().item()
+        sum_scores = torch.tensor(scores, dtype=torch.float32).sum()
+        return torch.round(sum_scores).to(torch.int64).item()
 
     def sample_p_zs_given_zt(self, s, t, X_t, E_t, r, y_t, node_mask):
         """Samples from zs ~ p(zs | zt). Only used during sampling.

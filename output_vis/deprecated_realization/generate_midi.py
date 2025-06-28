@@ -125,7 +125,7 @@ if __name__ == '__main__':
     }
     
     # Parse the file (which may contain multiple graphs)
-    file_path = 'generated_samples1.txt'
+    file_path = '../generated_samples1.txt'
     graphs = parse_generated_file(file_path)
     print(f"Found {len(graphs)} graph(s) in the file.")
     

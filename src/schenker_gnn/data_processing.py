@@ -270,7 +270,8 @@ class HeteroGraphData(Dataset):
             "metric_strength": HeteroGraphData.get_metric_strengths(pyscoreparser_notes),
             # "midi": np.array([(note.pitch[1] - 21) / 88 for note in pyscoreparser_notes]),
             # "midi": np.array([note.pitch[1] for note in pyscoreparser_notes]),
-            "duration": np.array([duration / np.max(durations) for duration in durations]),
+            # "duration": np.array([duration / np.max(durations) for duration in durations]),
+            "duration": np.array(durations),
             "offsets": np.array([offset / np.max(offsets) for offset in offsets]),
             # "scale_degrees": HeteroGraphData.get_scale_degrees(pyscoreparser_notes, key_signature, counter)
         }

@@ -12,6 +12,9 @@ def keep_soprano_and_bass_only(file_path: Path):
         if len(parts) < 4:
             print(f"⚠️ Not enough parts in {file_path.name} (found {len(parts)}), skipping.")
             return
+        if len(parts) > 4:
+            print(f"⚠️ Too many parts in {file_path.name} (found {len(parts)}), skipping.")
+            return
 
         soprano = parts[0]
         bass = parts[3]

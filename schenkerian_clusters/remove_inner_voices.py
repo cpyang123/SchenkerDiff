@@ -108,4 +108,4 @@ def process_all_json_remove_inner(root_folder: str):
 
 if __name__ == "__main__":
     process_all_musicxml_remove_inner("../schenkerian_clusters/")
-    process_all_json_remove_inner("../schenkerian_clusters/")
+    ("../schenkerian_clusters/")

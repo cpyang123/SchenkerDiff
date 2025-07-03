@@ -1,217 +1,122 @@
 #!/usr/bin/env python3
+"""
+Split MusicXML files at fermatas in the soprano (first part) and export each segment as a new MusicXML file,
+while preserving key and time signatures and correct bar lines.
+"""
 import os
 import sys
-import xml.etree.ElementTree as ET
-from pathlib import Path
+import argparse
+from music21 import converter, stream, expressions, key, meter
 
-def find_fermata_measures_in_soprano(filepath: str):
+
+def find_fermata_positions(soprano_part: stream.Part):
     """
-    Parse a MusicXML file and find all measures that contain fermatas in the highest voice (soprano).
-    Returns a list of measure numbers (1-based) where fermatas occur in the soprano part.
+    Find all fermata positions in the soprano part.
+    Returns a list of tuples (measure_number, offset_in_quarter_length).
     """
-    tree = ET.parse(filepath)
-    root = tree.getroot()
-    
-    fermata_measures = set()
-    
-    # Find all parts
-    parts = root.findall('.//{*}part')
-    if not parts:
-        return []
-    
-    # Assume the first part is the soprano (highest voice)
-    soprano_part = parts[0]
-    measures = soprano_part.findall('{*}measure')
-    
-    for i, measure in enumerate(measures):
-        measure_number = i + 1  # 1-based measure numbering
-        
-        # Check for fermata in notations
-        fermatas = measure.findall('.//{*}fermata')
-        if fermatas:
-            fermata_measures.add(measure_number)
-            continue
-        
-        # Check for fermata in articulations
-        articulations = measure.findall('.//{*}articulations')
-        for articulation in articulations:
-            if articulation.find('{*}fermata') is not None:
-                fermata_measures.add(measure_number)
+    positions = []
+    for measure in soprano_part.getElementsByClass(stream.Measure):
+        for n in measure.notes:
+            if any(isinstance(expr, expressions.Fermata) for expr in n.expressions):
+                positions.append((measure.measureNumber, n.offset))
                 break
-    
-    return sorted(list(fermata_measures))
+    return positions
 
-def split_measure_at_fermata(measure):
-    """
-    Split a measure at the fermata point, returning notes before+including fermata 
-    and notes after fermata.
-    Returns (notes_up_to_fermata, notes_after_fermata)
-    """
-    all_elements = list(measure)
-    fermata_found = False
-    fermata_index = -1
-    
-    # Find all note elements and their positions
-    for i, element in enumerate(all_elements):
-        if element.tag.endswith('note'):
-            # Check if this note has a fermata
-            has_fermata = False
-            
-            # Check in notations
-            notations = element.find('{*}notations')
-            if notations is not None:
-                fermata = notations.find('{*}fermata')
-                if fermata is not None:
-                    has_fermata = True
-            
-            # Check in articulations within notations
-            if not has_fermata and notations is not None:
-                articulations = notations.find('{*}articulations')
-                if articulations is not None:
-                    fermata = articulations.find('{*}fermata')
-                    if fermata is not None:
-                        has_fermata = True
-            
-            if has_fermata:
-                fermata_found = True
-                fermata_index = i
-                break
-    
-    if not fermata_found:
-        return all_elements, []
-    
-    # Split elements at fermata point
-    elements_up_to_fermata = all_elements[:fermata_index + 1]
-    elements_after_fermata = all_elements[fermata_index + 1:]
-    
-    return elements_up_to_fermata, elements_after_fermata
 
-def truncate_measure_at_fermata(measure):
+def create_segment(score: stream.Score, start_measure: int, end_measure: int, fermata_offset: float):
     """
-    Remove all elements that come after a fermata in the given measure.
+    Build a new Score containing measures from start_measure..end_measure (inclusive).
+    In the end_measure, truncate notes after fermata_offset.
+    Preserves key/time signatures and barlines.
     """
-    elements_up_to_fermata, elements_after_fermata = split_measure_at_fermata(measure)
-    
-    # Remove all elements after fermata
-    for element in elements_after_fermata:
-        measure.remove(element)
+    segment = stream.Score()
+    if score.metadata:
+        segment.metadata = score.metadata
 
-def create_partial_measure_from_fermata(original_measure, measure_number):
-    """
-    Create a new measure containing only the elements that come after the fermata.
-    """
-    elements_up_to_fermata, elements_after_fermata = split_measure_at_fermata(original_measure)
-    
-    if not elements_after_fermata:
-        return None
-    
-    # Create new measure with same attributes
-    new_measure = ET.Element(original_measure.tag, original_measure.attrib)
-    
-    # Copy measure number (increment it slightly to indicate it's a partial measure)
-    if 'number' in original_measure.attrib:
-        new_measure.set('number', str(measure_number))
-    
-    # Add elements that come after fermata
-    for element in elements_after_fermata:
-        new_measure.append(element)
-    
-    return new_measure
+    for original_part in score.parts:
+        new_part = stream.Part()
+        new_part.id = original_part.id
+        # Preserve the part's key and time signature at the start of the segment
+        ks_list = original_part.getElementsByClass(key.KeySignature)
+        if ks_list:
+            new_part.insert(0, ks_list[0].clone())
+        ts_list = original_part.getElementsByClass(meter.TimeSignature)
+        if ts_list:
+            new_part.insert(0, ts_list[0].clone())
 
-def create_segments_at_fermatas(filepath: str, output_dir: str = None):
+        for measure in original_part.getElementsByClass(stream.Measure):
+            m_num = measure.measureNumber
+            if m_num < start_measure:
+                continue
+            if end_measure is not None and m_num > end_measure:
+                continue
+            m_clone = measure.clone()
+            if end_measure is not None and m_num == end_measure and fermata_offset is not None:
+                # Remove notes and chords starting after the fermata offset
+                for n in list(m_clone.notesAndRests):
+                    if hasattr(n, 'offset') and n.offset > fermata_offset:
+                        m_clone.remove(n)
+            new_part.append(m_clone)
+
+        segment.append(new_part)
+    return segment
+
+
+def split_file(filepath: str, output_dir: str):
     """
-    Parse a MusicXML file and create separate segments ending at each fermata.
-    Each segment contains measures from the beginning (or previous fermata) up to and including the fermata,
-    with no notes after the fermata.
+    Parse file, find fermatas in soprano, split into segments, and write them out.
     """
-    if output_dir is None:
-        output_dir = os.path.dirname(filepath)
-    
-    fermata_measures = find_fermata_measures_in_soprano(filepath)
-    
-    if not fermata_measures:
-        print(f"⚠️  No fermatas found in soprano voice of {filepath}")
+    score = converter.parse(filepath)
+    soprano = score.parts[0]
+    fermatas = find_fermata_positions(soprano)
+    if not fermatas:
+        print(f"⚠️  No fermatas found in {filepath}")
         return
-    
-    tree = ET.parse(filepath)
-    root = tree.getroot()
-    
-    # Create segments ending at each fermata
-    base_filename = Path(filepath).stem
-    start_measure = 1
-    
-    for seg_idx, fermata_measure in enumerate(fermata_measures):
-        end_measure = fermata_measure
-        
-        # Create a copy of the original tree for this segment
-        segment_tree = ET.parse(filepath)
-        segment_root = segment_tree.getroot()
-        
-        # Process each part in the segment
-        for part_idx, part in enumerate(segment_root.findall('.//{*}part')):
-            measures = part.findall('{*}measure')
-            
-            # Remove measures outside the current segment
-            measures_to_remove = []
-            for i, measure in enumerate(measures):
-                measure_number = i + 1  # 1-based
-                if measure_number < start_measure or measure_number > end_measure:
-                    measures_to_remove.append(measure)
-                elif measure_number == end_measure:
-                    # This is the fermata measure - remove notes after fermata
-                    truncate_measure_at_fermata(measure)
-            
-            for measure in measures_to_remove:
-                part.remove(measure)
-        
-        # Save the segment
-        segment_filename = f"{base_filename}_segment_{seg_idx + 1:02d}_measures_{start_measure}-{end_measure}.xml"
-        segment_filepath = os.path.join(output_dir, segment_filename)
-        
-        segment_tree.write(segment_filepath, encoding='utf-8', xml_declaration=True)
-        print(f"✅ Created segment: {segment_filename} (measures {start_measure}-{end_measure}, ends at fermata)")
-        
-        # Next segment starts after this fermata
-        start_measure = fermata_measure + 1
-    
-    print(f"📊 Created {len(fermata_measures)} segments from fermatas in soprano voice")
 
-def main(root_dir: str, create_segments_dir: bool = False):
-    """
-    Process all XML files in the directory and create segments at fermatas in soprano voice.
-    """
-    for dirpath, _, filenames in os.walk(root_dir):
+    last_measure = soprano.getElementsByClass(stream.Measure)[-1].measureNumber
+    boundaries = []
+    start = 1
+    for m_num, offset in fermatas:
+        boundaries.append((start, m_num, offset))
+        start = m_num + 1
+    # final segment if any measures remain
+    if start <= last_measure:
+        boundaries.append((start, None, None))
+
+    base = os.path.splitext(os.path.basename(filepath))[0]
+    for idx, (s, e, off) in enumerate(boundaries, start=1):
+        segment = create_segment(score, s, e, off)
+        fname = f"{base}_segment_{idx:02d}.musicxml"
+        outpath = os.path.join(output_dir, fname)
+        segment.write('musicxml', fp=outpath)
+        rng = f"measures {s}-{e or last_measure}"
+        print(f"✅ Created segment: {outpath}  ({rng})")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Split MusicXML files at fermatas in soprano into separate segments"
+    )
+    parser.add_argument('root_dir', help="Root directory to search for XML files")
+    parser.add_argument(
+        '--segments-dir', action='store_true',
+        help="Place outputs in a 'segments' subdirectory alongside each file"
+    )
+    args = parser.parse_args()
+
+    for dirpath, _, filenames in os.walk(args.root_dir):
         for fname in filenames:
-            if fname.lower().endswith('.xml'):
-                fullpath = os.path.join(dirpath, fname)
-                
-                # Create a segments subdirectory if requested
-                if create_segments_dir:
-                    segments_dir = os.path.join(dirpath, "segments")
-                    os.makedirs(segments_dir, exist_ok=True)
-                    output_dir = segments_dir
+            if fname.lower().endswith(('.xml', '.musicxml')):
+                full = os.path.join(dirpath, fname)
+                if args.segments_dir:
+                    out_dir = os.path.join(dirpath, 'segments')
+                    os.makedirs(out_dir, exist_ok=True)
                 else:
-                    output_dir = dirpath
-                
+                    out_dir = dirpath
                 try:
-                    create_segments_at_fermatas(fullpath, output_dir)
-                    # Delete the original file after successful segmentation
-                    os.remove(fullpath)
-                    print(f"📁 Processed and deleted original: {fullpath}")
+                    split_file(full, out_dir)
                 except Exception as e:
-                    print(f"❌ Failed on {fullpath}: {e}")
+                    print(f"❌ Failed on {full}: {e}")
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python truncate_pieces.py <root_dir> [create_segments_dir]")
-        print("  root_dir: Directory containing XML files to process")
-        print("  create_segments_dir: Create 'segments' subdirectory (default: false)")
-        print("  ")
-        print("This script creates segments of musical pieces, where each segment")
-        print("ends at a fermata found in the soprano (highest) voice.")
-        sys.exit(1)
-
-    root_directory = sys.argv[1]
-    create_segments_subdir = sys.argv[2].lower() != 'false' if len(sys.argv) > 2 else False
-    
-    main(root_directory, create_segments_subdir)
+if __name__ == '__main__':
+    main()

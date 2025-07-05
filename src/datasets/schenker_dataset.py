@@ -70,10 +70,10 @@ class SchenkerGraphDataset(InMemoryDataset):
     @property
     def processed_file_names(self):
         np.random.seed(42)
-        n_samples = 350
+        n_samples = 2361
 
         # Randomly select 90 indices for the test set
-        test_indices = np.random.choice(n_samples, 30, replace=False)
+        test_indices = np.random.choice(n_samples, 200, replace=False)
 
         if self.test_mode:
             return [f'{i}_processed.pt' for i in test_indices]
@@ -203,10 +203,10 @@ class SchenkerDiffHeteroGraphData(Dataset):
     @property
     def processed_file_names(self):
         np.random.seed(42)
-        n_samples = 345
+        n_samples = 2361
 
         # Randomly select 90 indices for the test set
-        test_indices = np.random.choice(n_samples, 30, replace=False)
+        test_indices = np.random.choice(n_samples, 200, replace=False)
 
         if self.test_mode:
             return [f'{i}_processed.pt' for i in test_indices]
@@ -975,10 +975,10 @@ class SchenkerDiffHeteroGraphData(Dataset):
         XMLDocument = MusicXMLDocument(str(xml_file))
         pyscoreparser_notes = XMLDocument.get_notes()
         music21_score = music21.converter.parse(str(xml_file))
-        # key_signature = music21_score.analyze('key')
-        ks_elem = music21_score.flat.getElementsByClass(music21.key.KeySignature)[0]
+        key_signature = music21_score.analyze('key')
+        # ks_elem = music21_score.flat.getElementsByClass(music21.key.KeySignature)[0]
         # 3) convert that KeySignature into a Key object
-        key_signature: music21.key.Key = ks_elem.asKey()
+        # key_signature: music21.key.Key = ks_elem.asKey()
 
         self.check_overlapping_notes(pyscoreparser_notes, str(xml_file).removesuffix('.xml'))
 

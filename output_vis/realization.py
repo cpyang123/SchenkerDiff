@@ -1,5 +1,5 @@
 from music21 import stream, note, meter, key, tempo, interval
-from src.rule_guidance import SCALE_DEGREES, SCALE_DEGREE_TO_C, SCALE_DEGREE_TO_CLASS, C_BASED_0, CLASS_TO_SCALE_DEGREE
+from rule_guidance import SCALE_DEGREES, SCALE_DEGREE_TO_C, SCALE_DEGREE_TO_CLASS, C_BASED_0, CLASS_TO_SCALE_DEGREE
 import numpy as np
 
 def parse_generated_file(file_path):

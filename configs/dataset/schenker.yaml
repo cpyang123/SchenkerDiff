@@ -1,3 +1,12 @@
 name: schenker
 remove_h: null
 datadir: 'data/schenker/processed/heterdatacleaned/'
+
+r_indices: [metric_strength, duration, offset_norm, voice_norm, voice_rev]
+
+# 0 - 5 Metric strength one hot encoding
+# 6 duration
+# 7 normalized offset
+# 8 normalized voice (0 lowest 1 highest)
+# 9 reverse normalized voice (1 highest 0 lowest)
+# 10 depth (not used yet)

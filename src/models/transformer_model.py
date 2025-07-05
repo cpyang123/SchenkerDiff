@@ -378,8 +378,15 @@ class GraphTransformer(nn.Module):
         y_to_out = y[..., :self.out_dim_y]
 
         # Extract and unnormalize positional encoding from 8th column of r
-        normalized_pos = r[:, :, 7]  # Extract 8th column (0-indexed)
+        # Safe extraction of 8th column from r, if available
+
+        if r.size(-1) > 7:
+            normalized_pos = r[:, :, 7]
+        else:
+            normalized_pos = torch.arange(r.size(1), device=r.device).unsqueeze(0).repeat(r.size(0), 1)
+
         position_indices = self.unnormalize_positions(normalized_pos)
+
 
         # X += self.mlp_in_r(r)
         # X_r = torch.cat((self.mlp_in_X(X), self.mlp_in_r(r)), dim=-1)

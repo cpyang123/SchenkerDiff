@@ -736,7 +736,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         return E_out, r_out
 
     @staticmethod
-    def sample_r_E(batch_size):
+    def sample_r_E(self, batch_size):
         """
         Samples `batch_size` random pickle files from the directory 
         where i is a random integer between 0 and 1080. Each pickle file contains a dictionary 
@@ -784,7 +784,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             data_dict = torch.load(file_path)
 
             # Convert dictionary to a PyG Data object using the provided function
-            data = SchenkerDiffHeteroGraphData.hetero_to_data(data_dict)
+            data = SchenkerDiffHeteroGraphData.hetero_to_data(data_dict, self.cfg)
 
             # Determine the actual number of nodes in the current sample
             m = data.x.shape[0]

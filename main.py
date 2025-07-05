@@ -3,6 +3,7 @@ import pathlib
 import warnings
 
 import torch
+
 torch.cuda.empty_cache()
 import hydra
 from omegaconf import DictConfig
@@ -64,41 +65,40 @@ def get_resume_adaptive(cfg, model_kwargs):
     return new_cfg, model
 
 
-
 @hydra.main(version_base='1.3', config_path='../SchenkerDiff/configs', config_name='config')
 def main(cfg: DictConfig):
     dataset_config = cfg["dataset"]
 
-    if dataset_config["name"] in ['sbm', 'comm20', 'planar']:
-        from src.datasets.spectre_dataset import SpectreGraphDataModule, SpectreDatasetInfos
-        from src.analysis.spectre_utils import PlanarSamplingMetrics, SBMSamplingMetrics, Comm20SamplingMetrics
-        from src.analysis.visualization import NonMolecularVisualization
-
-        datamodule = SpectreGraphDataModule(cfg)
-        if dataset_config['name'] == 'sbm':
-            sampling_metrics = SBMSamplingMetrics(datamodule)
-        elif dataset_config['name'] == 'comm20':
-            sampling_metrics = Comm20SamplingMetrics(datamodule)
-        else:
-            sampling_metrics = PlanarSamplingMetrics(datamodule)
-
-        dataset_infos = SpectreDatasetInfos(datamodule, dataset_config)
-        train_metrics = TrainAbstractMetricsDiscrete() if cfg.model.type == 'discrete' else TrainAbstractMetrics()
-        visualization_tools = NonMolecularVisualization()
-
-        if cfg.model.type == 'discrete' and cfg.model.extra_features is not None:
-            extra_features = ExtraFeatures(cfg.model.extra_features, dataset_info=dataset_infos)
-        else:
-            extra_features = DummyExtraFeatures()
-        domain_features = DummyExtraFeatures()
-
-        dataset_infos.compute_input_output_dims(datamodule=datamodule, extra_features=extra_features,
-                                                domain_features=domain_features)
-
-        model_kwargs = {'dataset_infos': dataset_infos, 'train_metrics': train_metrics,
-                        'sampling_metrics': sampling_metrics, 'visualization_tools': visualization_tools,
-                        'extra_features': extra_features, 'domain_features': domain_features}
-    elif dataset_config["name"] == 'schenker':
+    # if dataset_config["name"] in ['sbm', 'comm20', 'planar']:
+    #     from src.datasets.spectre_dataset import SpectreGraphDataModule, SpectreDatasetInfos
+    #     from src.analysis.spectre_utils import PlanarSamplingMetrics, SBMSamplingMetrics, Comm20SamplingMetrics
+    #     from src.analysis.visualization import NonMolecularVisualization
+    #
+    #     datamodule = SpectreGraphDataModule(cfg)
+    #     if dataset_config['name'] == 'sbm':
+    #         sampling_metrics = SBMSamplingMetrics(datamodule)
+    #     elif dataset_config['name'] == 'comm20':
+    #         sampling_metrics = Comm20SamplingMetrics(datamodule)
+    #     else:
+    #         sampling_metrics = PlanarSamplingMetrics(datamodule)
+    #
+    #     dataset_infos = SpectreDatasetInfos(datamodule, dataset_config)
+    #     train_metrics = TrainAbstractMetricsDiscrete() if cfg.model.type == 'discrete' else TrainAbstractMetrics()
+    #     visualization_tools = NonMolecularVisualization()
+    #
+    #     if cfg.model.type == 'discrete' and cfg.model.extra_features is not None:
+    #         extra_features = ExtraFeatures(cfg.model.extra_features, dataset_info=dataset_infos)
+    #     else:
+    #         extra_features = DummyExtraFeatures()
+    #     domain_features = DummyExtraFeatures()
+    #
+    #     dataset_infos.compute_input_output_dims(datamodule=datamodule, extra_features=extra_features,
+    #                                             domain_features=domain_features)
+    #
+    #     model_kwargs = {'dataset_infos': dataset_infos, 'train_metrics': train_metrics,
+    #                     'sampling_metrics': sampling_metrics, 'visualization_tools': visualization_tools,
+    #                     'extra_features': extra_features, 'domain_features': domain_features}
+    if dataset_config["name"] == 'schenker':
         from src.datasets.schenker_dataset import SchenkerGraphDataModule, SchenkerDatasetInfos
         from src.analysis.spectre_utils import PlanarSamplingMetrics, SBMSamplingMetrics, Comm20SamplingMetrics
         from src.analysis.visualization import NonMolecularVisualization
@@ -122,7 +122,7 @@ def main(cfg: DictConfig):
         model_kwargs = {'dataset_infos': dataset_infos, 'train_metrics': train_metrics,
                         'sampling_metrics': sampling_metrics, 'visualization_tools': visualization_tools,
                         'extra_features': extra_features, 'domain_features': domain_features}
-        
+
     elif dataset_config["name"] in ['qm9', 'guacamol', 'moses']:
         from src.metrics.molecular_metrics import TrainMolecularMetrics, SamplingMolecularMetrics
         from src.metrics.molecular_metrics_discrete import TrainMolecularMetricsDiscrete
@@ -211,20 +211,20 @@ def main(cfg: DictConfig):
         print("[WARNING]: Run is called 'debug' -- it will run with fast_dev_run. ")
 
     use_gpu = cfg.general.gpus > 0 and torch.cuda.is_available()
-    trainer = Trainer(gradient_clip_val = cfg.train.clip_grad,
-                      strategy = "ddp_find_unused_parameters_true",  # Needed to load old checkpoints
-                      accelerator = 'gpu' if use_gpu else 'cpu',
-                      devices = cfg.general.gpus if use_gpu else 1,
-                      max_epochs = cfg.train.n_epochs,
-                      check_val_every_n_epoch = cfg.general.check_val_every_n_epochs,
-                      fast_dev_run = cfg.general.name == 'debug',
-                      enable_progress_bar = False,
-                      callbacks = callbacks,
-                      log_every_n_steps = 50 if name != 'debug' else 1,
-                      logger = [])
+    trainer = Trainer(gradient_clip_val=cfg.train.clip_grad,
+                      strategy="ddp_find_unused_parameters_true",  # Needed to load old checkpoints
+                      accelerator='gpu' if use_gpu else 'cpu',
+                      devices=cfg.general.gpus if use_gpu else 1,
+                      max_epochs=cfg.train.n_epochs,
+                      check_val_every_n_epoch=cfg.general.check_val_every_n_epochs,
+                      fast_dev_run=cfg.general.name == 'debug',
+                      enable_progress_bar=False,
+                      callbacks=callbacks,
+                      log_every_n_steps=50 if name != 'debug' else 1,
+                      logger=[])
 
     if not cfg.general.test_only:
-        trainer.fit(model, datamodule = datamodule, ckpt_path = cfg.general.resume)
+        trainer.fit(model, datamodule=datamodule, ckpt_path=cfg.general.resume)
         if cfg.general.name not in ['debug', 'test']:
             trainer.test(model, datamodule=datamodule)
     else:
@@ -241,6 +241,7 @@ def main(cfg: DictConfig):
                         continue
                     print("Loading checkpoint", ckpt_path)
                     trainer.test(model, datamodule=datamodule, ckpt_path=ckpt_path)
+
 
 if __name__ == '__main__':
     main()

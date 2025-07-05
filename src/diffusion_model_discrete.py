@@ -201,7 +201,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             src.utils.setup_wandb(self.cfg)
 
     def on_train_epoch_start(self) -> None:
-        self.print("Starting train epoch...")
+        # self.print("Starting train epoch...")
         self.start_epoch_time = time.time()
         self.train_loss.reset()
         self.train_metrics.reset()
@@ -212,12 +212,13 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                    f" -- E_CE: {to_log['train_epoch/E_CE'] :.3f} --"
                    f" y_CE: {to_log['train_epoch/y_CE'] :.3f}"
                    f" -- {time.time() - self.start_epoch_time:.1f}s ")
-        epoch_at_metrics, epoch_bond_metrics = self.train_metrics.log_epoch_metrics()
-        self.print(f"Epoch {self.current_epoch}: {epoch_at_metrics} -- {epoch_bond_metrics}")
+        # epoch_at_metrics, epoch_bond_metrics = self.train_metrics.log_epoch_metrics()
+        # self.print(f"Epoch {self.current_epoch}: {epoch_at_metrics} -- {epoch_bond_metrics}")
         if torch.cuda.is_available():
             print(torch.cuda.memory_summary())
         else:
-            print("CUDA is not available. Skipping memory summary.")
+            pass
+            # print("CUDA is not available. Skipping memory summary.")
 
     def on_validation_epoch_start(self) -> None:
         self.val_nll.reset()
@@ -230,6 +231,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
     def validation_step(self, data, i):
         dense_data, node_mask = src.utils.to_dense(data.x, data.edge_index, data.edge_attr, data.batch)
         dense_data = dense_data.mask(node_mask)
+        #TODO: Why is the first row of dense_data.E all 0?
         noisy_data = self.apply_noise(dense_data.X, dense_data.E, data.y, node_mask)
         extra_data = self.compute_extra_data(noisy_data)
         # extra_data = src.utils.PlaceHolder(X=data.r, E=data.s, y=data.y)
@@ -258,7 +260,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
         if val_nll < self.best_val_nll:
             self.best_val_nll = val_nll
-        self.print('Val loss: %.4f \t Best val loss:  %.4f\n' % (val_nll, self.best_val_nll))
+        # self.print('Val loss: %.4f \t Best val loss:  %.4f\n' % (val_nll, self.best_val_nll))
 
         self.val_counter += 1
         if self.val_counter % self.cfg.general.sample_every_val == 0:
@@ -515,6 +517,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         probX = X @ Qtb.X  # (bs, n, dx_out)
         probE = E @ Qtb.E.unsqueeze(1)  # (bs, n, n, de_out)
 
+        # Changes probX and probE to probability distributions
         sampled_t = diffusion_utils.sample_discrete_features(probX=probX, probE=probE, node_mask=node_mask)
 
         X_t = F.one_hot(sampled_t.X, num_classes=self.Xdim_output)

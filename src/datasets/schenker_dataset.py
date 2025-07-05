@@ -356,6 +356,8 @@ class SchenkerDiffHeteroGraphData(Dataset):
             r[:, -1] = depth_dim / max_val
 
         assert torch.all((x == 0) | (x == 1)), "Tensor contains values other than 0 or 1."
+        assert (x.sum(dim=1) == 1).all()
+
         data = Data(x=x, edge_index=edge_indices, edge_attr=edge_attrs, \
                     y=torch.zeros([1, 0]), r=r)
 

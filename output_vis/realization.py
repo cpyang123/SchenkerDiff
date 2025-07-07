@@ -66,8 +66,12 @@ def realization(X, R, tempo_multiplier=1.0, output_file='output.mid'):
     """
        duration    = R[i][6]
        offset_norm = R[i][7]
-       voice_low   = R[i][-2]
+       voice_low   = R[i][-3]
     """
+
+    num_parts = len(set(R[i][-2]))
+
+    
 
     # Create the score and parts
     score = stream.Score()

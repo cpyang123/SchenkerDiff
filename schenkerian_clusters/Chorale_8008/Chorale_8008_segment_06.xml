@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE score-partwise  PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="3.1">
-  <movement-title>Music21 Fragment</movement-title>
+  <movement-title>Chorale_8008.xml</movement-title>
   <identification>
     <creator type="composer">Music21</creator>
     <encoding>
-      <encoding-date>2025-07-03</encoding-date>
+      <encoding-date>2025-07-05</encoding-date>
       <software>music21 v.8.3.0</software>
+      <software>Finale 2008 for Macintosh</software>
+      <software>Dolet Light for Finale 2008</software>
     </encoding>
   </identification>
   <defaults>
@@ -16,15 +18,21 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Pc024cff34bcc399640ee91fbd27aeef8">
+    <score-part id="P4fd4267cdce540c398fa477580ef28b0">
       <part-name />
     </score-part>
-    <score-part id="P92c758d2d61b04b081201d6d8471cf01">
+    <score-part id="P6c87c914e8e3b871b2cd1089fe116b6e">
+      <part-name />
+    </score-part>
+    <score-part id="Pe48d9cd6958b703d7c916758f913de54">
+      <part-name />
+    </score-part>
+    <score-part id="P7fb5756647eec1c4bba9417d390b1cfa">
       <part-name />
     </score-part>
   </part-list>
   <!--=========================== Part 1 ===========================-->
-  <part id="Pc024cff34bcc399640ee91fbd27aeef8">
+  <part id="P4fd4267cdce540c398fa477580ef28b0">
     <!--========================= Measure 11 =========================-->
     <measure number="11" width="250">
       <print new-system="yes" />
@@ -78,7 +86,124 @@
     </measure>
   </part>
   <!--=========================== Part 2 ===========================-->
-  <part id="P92c758d2d61b04b081201d6d8471cf01">
+  <part id="P6c87c914e8e3b871b2cd1089fe116b6e">
+    <!--========================= Measure 11 =========================-->
+    <measure number="11" width="250">
+      <print new-system="yes" />
+      <attributes>
+        <divisions>10080</divisions>
+        <key>
+          <fifths>2</fifths>
+          <mode>major</mode>
+        </key>
+        <time symbol="common">
+          <beats>4</beats>
+          <beat-type>4</beat-type>
+        </time>
+      </attributes>
+      <note default-x="89">
+        <pitch>
+          <step>B</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem default-y="-20">up</stem>
+        <beam number="1">begin</beam>
+      </note>
+      <note default-x="112">
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>5040</duration>
+        <type>eighth</type>
+        <stem default-y="-10">up</stem>
+        <beam number="1">end</beam>
+      </note>
+      <note default-x="136">
+        <pitch>
+          <step>G</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem default-y="6">up</stem>
+      </note>
+      <note default-x="173">
+        <pitch>
+          <step>F</step>
+          <alter>1</alter>
+          <octave>4</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem default-y="0.5">up</stem>
+      </note>
+      <note print-object="no" print-spacing="yes">
+        <rest />
+        <duration>10080</duration>
+        <type>quarter</type>
+      </note>
+    </measure>
+  </part>
+  <!--=========================== Part 3 ===========================-->
+  <part id="Pe48d9cd6958b703d7c916758f913de54">
+    <!--========================= Measure 11 =========================-->
+    <measure number="11" width="250">
+      <print new-system="yes">
+        <staff-layout number="1">
+          <staff-distance>90</staff-distance>
+        </staff-layout>
+      </print>
+      <attributes>
+        <divisions>10080</divisions>
+        <key>
+          <fifths>2</fifths>
+          <mode>major</mode>
+        </key>
+        <time symbol="common">
+          <beats>4</beats>
+          <beat-type>4</beat-type>
+        </time>
+        <staff-details print-object="yes" />
+      </attributes>
+      <note default-x="89">
+        <pitch>
+          <step>D</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem default-y="-45.5">down</stem>
+      </note>
+      <note default-x="136">
+        <pitch>
+          <step>E</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem default-y="-40">down</stem>
+      </note>
+      <note default-x="173">
+        <pitch>
+          <step>A</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem default-y="11">up</stem>
+      </note>
+      <note print-object="no" print-spacing="yes">
+        <rest />
+        <duration>10080</duration>
+        <type>quarter</type>
+      </note>
+    </measure>
+  </part>
+  <!--=========================== Part 4 ===========================-->
+  <part id="P7fb5756647eec1c4bba9417d390b1cfa">
     <!--========================= Measure 11 =========================-->
     <measure number="11" width="250">
       <print new-system="yes" />

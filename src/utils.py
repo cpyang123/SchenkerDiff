@@ -70,8 +70,8 @@ def encode_no_edge(E):
     first_elt = E[:, :, :, 0]
     first_elt[no_edge] = 1
     E[:, :, :, 0] = first_elt
-    diag = torch.eye(E.shape[1], dtype=torch.bool).unsqueeze(0).expand(E.shape[0], -1, -1)
-    E[diag] = 0
+    # diag = torch.eye(E.shape[1], dtype=torch.bool).unsqueeze(0).expand(E.shape[0], -1, -1)
+    # E[diag] = 0
     return E
 
 

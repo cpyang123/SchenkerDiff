@@ -37,6 +37,7 @@ SCALE_DEGREE_TO_C = {
 C_BASED_0 = {
     "C": 0,
     "C#": 1,
+    "D-": 1,
     "Db": 1,
     "D": 2,
     "D#": 3,

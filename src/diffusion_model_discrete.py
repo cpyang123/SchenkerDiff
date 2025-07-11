@@ -900,8 +900,8 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
             scg_kwargs = {
                 "num_samples": 8,
                 "rules": [ParallelChecker, DissonanceChecker],
-                "disallowed_intervals": [1, 2, 11],
-                "disallowed_parallels": [0, 7]
+                "disallowed_intervals": [1, 2, 11, 5],
+                "disallowed_parallels": [0, 7, 1, 2, 10, 11, 5]
             }
 
         # find distribution for p_theta(G^t-1 | G^t)

@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE score-partwise  PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="3.1">
-  <movement-title>Chorale_2908.xml</movement-title>
+  <movement-title>Music21 Fragment</movement-title>
   <identification>
     <creator type="composer">Music21</creator>
     <encoding>
-      <encoding-date>2025-07-05</encoding-date>
+      <encoding-date>2025-07-09</encoding-date>
       <software>music21 v.8.3.0</software>
-      <software>Finale 2008 for Macintosh</software>
-      <software>Dolet Light for Finale 2008</software>
     </encoding>
   </identification>
   <defaults>
@@ -18,33 +16,15 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Pb3058bd5d21df4dff36382cc4bce909c">
+    <score-part id="P9f36dd9546087fa13da389e63502524d">
       <part-name />
     </score-part>
-    <score-part id="Pda46c0bcb6e631e2596a67797612e201">
-      <part-name />
-    </score-part>
-    <score-part id="P66502d0e204572517979b9f823855e8d">
-      <part-name />
-    </score-part>
-    <score-part id="P9b839bb8b531025ba80853aae33dc8a2">
-      <part-name />
-    </score-part>
-    <score-part id="P2109ebc92417af56b8098f4e99d564fe">
-      <part-name />
-    </score-part>
-    <score-part id="Pb6a41899b2dd9b0f2bf3b8368a84d1b4">
-      <part-name />
-    </score-part>
-    <score-part id="Pe770e028f9c730e4f06d108cdde8ea21">
-      <part-name />
-    </score-part>
-    <score-part id="P0682e4f7bff0d5c49c80da0eea263a72">
+    <score-part id="P2dc582321f895d2e7cd48c20aaa2e8d9">
       <part-name />
     </score-part>
   </part-list>
   <!--=========================== Part 1 ===========================-->
-  <part id="Pb3058bd5d21df4dff36382cc4bce909c">
+  <part id="P9f36dd9546087fa13da389e63502524d">
     <!--========================= Measure 9 ==========================-->
     <measure number="9" width="159">
       <attributes>
@@ -58,31 +38,45 @@
           <beat-type>4</beat-type>
         </time>
       </attributes>
-      <note>
-        <rest measure="yes" />
-        <duration>30240</duration>
+      <note default-x="11">
+        <pitch>
+          <step>D</step>
+          <octave>5</octave>
+        </pitch>
+        <duration>20160</duration>
+        <type>half</type>
+        <stem default-y="-45">down</stem>
+      </note>
+      <note default-x="97">
+        <pitch>
+          <step>C</step>
+          <alter>1</alter>
+          <octave>5</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
+        <stem default-y="-50.5">down</stem>
       </note>
     </measure>
     <!--========================= Measure 10 =========================-->
     <measure number="10" width="170">
       <note default-x="11">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note default-x="64">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
+        <pitch>
+          <step>B</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>20160</duration>
+        <type>half</type>
+        <stem default-y="-55.5">down</stem>
       </note>
       <note default-x="116">
         <pitch>
           <step>A</step>
-          <octave>5</octave>
+          <octave>4</octave>
         </pitch>
         <duration>10080</duration>
         <type>quarter</type>
-        <stem default-y="-25.5">down</stem>
+        <stem default-y="10.5">up</stem>
       </note>
     </measure>
     <!--========================= Measure 11 =========================-->
@@ -98,44 +92,12 @@
       </note>
       <note default-x="68">
         <pitch>
-          <step>G</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem default-y="-30">down</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note default-x="96">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem default-y="-34.5">down</stem>
-        <beam number="1">end</beam>
-      </note>
-      <note default-x="125">
-        <pitch>
           <step>E</step>
           <octave>5</octave>
         </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
+        <duration>20160</duration>
+        <type>half</type>
         <stem default-y="-40">down</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note default-x="154">
-        <pitch>
-          <step>G</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem default-y="-30">down</stem>
-        <beam number="1">end</beam>
       </note>
     </measure>
     <!--========================= Measure 12 =========================-->
@@ -161,558 +123,7 @@
     </measure>
   </part>
   <!--=========================== Part 2 ===========================-->
-  <part id="Pda46c0bcb6e631e2596a67797612e201">
-    <!--========================= Measure 9 ==========================-->
-    <measure number="9" width="159">
-      <attributes>
-        <divisions>10080</divisions>
-        <key>
-          <fifths>2</fifths>
-          <mode>major</mode>
-        </key>
-        <time>
-          <beats>3</beats>
-          <beat-type>4</beat-type>
-        </time>
-      </attributes>
-      <note>
-        <rest measure="yes" />
-        <duration>30240</duration>
-      </note>
-    </measure>
-    <!--========================= Measure 10 =========================-->
-    <measure number="10" width="170">
-      <note default-x="11">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note default-x="64">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note default-x="116">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="-35.5">down</stem>
-      </note>
-    </measure>
-    <!--========================= Measure 11 =========================-->
-    <measure number="11" width="183">
-      <note default-x="11">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="-35.5">down</stem>
-      </note>
-      <note default-x="68">
-        <pitch>
-          <step>E</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <stem default-y="-40.5">down</stem>
-        <notations>
-          <ornaments>
-            <inverted-mordent default-y="15" />
-          </ornaments>
-        </notations>
-      </note>
-    </measure>
-    <!--========================= Measure 12 =========================-->
-    <measure number="12" width="125">
-      <note default-x="17">
-        <pitch>
-          <step>D</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <stem default-y="-45">down</stem>
-      </note>
-      <note print-object="no" print-spacing="yes">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-    </measure>
-  </part>
-  <!--=========================== Part 3 ===========================-->
-  <part id="P66502d0e204572517979b9f823855e8d">
-    <!--========================= Measure 9 ==========================-->
-    <measure number="9" width="159">
-      <attributes>
-        <divisions>10080</divisions>
-        <key>
-          <fifths>2</fifths>
-          <mode>major</mode>
-        </key>
-        <time>
-          <beats>3</beats>
-          <beat-type>4</beat-type>
-        </time>
-      </attributes>
-      <note>
-        <rest measure="yes" />
-        <duration>30240</duration>
-      </note>
-    </measure>
-    <!--========================= Measure 10 =========================-->
-    <measure number="10" width="170">
-      <note default-x="11">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note default-x="64">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note default-x="116">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem default-y="0">up</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note default-x="143">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem default-y="10.5">up</stem>
-        <beam number="1">end</beam>
-      </note>
-    </measure>
-    <!--========================= Measure 11 =========================-->
-    <measure number="11" width="183">
-      <note default-x="11">
-        <pitch>
-          <step>D</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="-45">down</stem>
-      </note>
-      <note default-x="68">
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="-10">up</stem>
-      </note>
-      <note default-x="125">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="10.5">up</stem>
-      </note>
-    </measure>
-    <!--========================= Measure 12 =========================-->
-    <measure number="12" width="125">
-      <note default-x="17">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <stem default-y="10.5">up</stem>
-      </note>
-      <note print-object="no" print-spacing="yes">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-    </measure>
-  </part>
-  <!--=========================== Part 4 ===========================-->
-  <part id="P9b839bb8b531025ba80853aae33dc8a2">
-    <!--========================= Measure 9 ==========================-->
-    <measure number="9" width="159">
-      <attributes>
-        <divisions>10080</divisions>
-        <key>
-          <fifths>2</fifths>
-          <mode>major</mode>
-        </key>
-        <time>
-          <beats>3</beats>
-          <beat-type>4</beat-type>
-        </time>
-      </attributes>
-      <note default-x="11">
-        <pitch>
-          <step>D</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <stem default-y="-45">down</stem>
-      </note>
-      <note default-x="97">
-        <pitch>
-          <step>C</step>
-          <alter>1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="-50.5">down</stem>
-      </note>
-    </measure>
-    <!--========================= Measure 10 =========================-->
-    <measure number="10" width="170">
-      <note default-x="11">
-        <pitch>
-          <step>B</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <stem default-y="-55.5">down</stem>
-      </note>
-      <note default-x="116">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="10.5">up</stem>
-      </note>
-    </measure>
-    <!--========================= Measure 11 =========================-->
-    <measure number="11" width="183">
-      <note default-x="11">
-        <pitch>
-          <step>D</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="-45">down</stem>
-      </note>
-      <note default-x="68">
-        <pitch>
-          <step>E</step>
-          <octave>5</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <stem default-y="-40">down</stem>
-      </note>
-    </measure>
-    <!--========================= Measure 12 =========================-->
-    <measure number="12" width="125">
-      <note default-x="17">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>5</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <stem default-y="-35">down</stem>
-        <notations>
-          <fermata type="upright" />
-        </notations>
-      </note>
-      <note print-object="no" print-spacing="yes">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-    </measure>
-  </part>
-  <!--=========================== Part 5 ===========================-->
-  <part id="P2109ebc92417af56b8098f4e99d564fe">
-    <!--========================= Measure 9 ==========================-->
-    <measure number="9" width="159">
-      <attributes>
-        <divisions>10080</divisions>
-        <key>
-          <fifths>2</fifths>
-          <mode>major</mode>
-        </key>
-        <time>
-          <beats>3</beats>
-          <beat-type>4</beat-type>
-        </time>
-      </attributes>
-      <note default-x="11">
-        <pitch>
-          <step>B</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="-55.5">down</stem>
-      </note>
-      <note default-x="54">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="10.5">up</stem>
-      </note>
-      <note default-x="97">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="10.5">up</stem>
-      </note>
-    </measure>
-    <!--========================= Measure 10 =========================-->
-    <measure number="10" width="170">
-      <note default-x="11">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="10.5">up</stem>
-      </note>
-      <note default-x="64">
-        <pitch>
-          <step>G</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="6">up</stem>
-      </note>
-      <note default-x="116">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem default-y="10">up</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note default-x="143">
-        <pitch>
-          <step>G</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem default-y="5">up</stem>
-        <beam number="1">end</beam>
-      </note>
-    </measure>
-    <!--========================= Measure 11 =========================-->
-    <measure number="11" width="183">
-      <note default-x="11">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="1">up</stem>
-      </note>
-      <note default-x="68">
-        <pitch>
-          <step>B</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="-55.5">down</stem>
-      </note>
-      <note default-x="125">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="10.5">up</stem>
-      </note>
-    </measure>
-    <!--========================= Measure 12 =========================-->
-    <measure number="12" width="125">
-      <note default-x="17">
-        <pitch>
-          <step>A</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <stem default-y="10.5">up</stem>
-      </note>
-      <note print-object="no" print-spacing="yes">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-    </measure>
-  </part>
-  <!--=========================== Part 6 ===========================-->
-  <part id="Pb6a41899b2dd9b0f2bf3b8368a84d1b4">
-    <!--========================= Measure 9 ==========================-->
-    <measure number="9" width="159">
-      <attributes>
-        <divisions>10080</divisions>
-        <key>
-          <fifths>2</fifths>
-          <mode>major</mode>
-        </key>
-        <time>
-          <beats>3</beats>
-          <beat-type>4</beat-type>
-        </time>
-      </attributes>
-      <note default-x="11">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <stem default-y="-35">down</stem>
-      </note>
-      <note default-x="97">
-        <pitch>
-          <step>F</step>
-          <alter>1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem default-y="-34.5">down</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note default-x="127">
-        <pitch>
-          <step>E</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem default-y="-40">down</stem>
-        <beam number="1">end</beam>
-      </note>
-    </measure>
-    <!--========================= Measure 10 =========================-->
-    <measure number="10" width="170">
-      <note default-x="11">
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="-45">down</stem>
-      </note>
-      <note default-x="64">
-        <pitch>
-          <step>E</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem default-y="-40">down</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note default-x="90">
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem default-y="-45">down</stem>
-        <beam number="1">end</beam>
-      </note>
-      <note default-x="116">
-        <pitch>
-          <step>C</step>
-          <alter>1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="-50.5">down</stem>
-      </note>
-    </measure>
-    <!--========================= Measure 11 =========================-->
-    <measure number="11" width="183">
-      <note default-x="11">
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <stem default-y="-45">down</stem>
-      </note>
-      <note default-x="125">
-        <pitch>
-          <step>C</step>
-          <alter>1</alter>
-          <octave>4</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="-50.5">down</stem>
-      </note>
-    </measure>
-    <!--========================= Measure 12 =========================-->
-    <measure number="12" width="125">
-      <note default-x="17">
-        <pitch>
-          <step>D</step>
-          <octave>4</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <stem default-y="-45">down</stem>
-      </note>
-      <note print-object="no" print-spacing="yes">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-    </measure>
-  </part>
-  <!--=========================== Part 7 ===========================-->
-  <part id="Pe770e028f9c730e4f06d108cdde8ea21">
+  <part id="P2dc582321f895d2e7cd48c20aaa2e8d9">
     <!--========================= Measure 9 ==========================-->
     <measure number="9" width="159">
       <attributes>
@@ -828,92 +239,6 @@
         <duration>10080</duration>
         <type>quarter</type>
         <stem default-y="-35">down</stem>
-      </note>
-    </measure>
-    <!--========================= Measure 12 =========================-->
-    <measure number="12" width="125">
-      <note default-x="17">
-        <pitch>
-          <step>D</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>20160</duration>
-        <type>half</type>
-        <stem default-y="-55.5">down</stem>
-      </note>
-      <note print-object="no" print-spacing="yes">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-    </measure>
-  </part>
-  <!--=========================== Part 8 ===========================-->
-  <part id="P0682e4f7bff0d5c49c80da0eea263a72">
-    <!--========================= Measure 9 ==========================-->
-    <measure number="9" width="159">
-      <attributes>
-        <divisions>10080</divisions>
-        <key>
-          <fifths>2</fifths>
-          <mode>major</mode>
-        </key>
-        <time>
-          <beats>3</beats>
-          <beat-type>4</beat-type>
-        </time>
-      </attributes>
-      <note>
-        <rest measure="yes" />
-        <duration>30240</duration>
-      </note>
-    </measure>
-    <!--========================= Measure 10 =========================-->
-    <measure number="10" width="170">
-      <note default-x="11">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note default-x="64">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note default-x="116">
-        <pitch>
-          <step>A</step>
-          <octave>2</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="1">up</stem>
-      </note>
-    </measure>
-    <!--========================= Measure 11 =========================-->
-    <measure number="11" width="183">
-      <note default-x="11">
-        <pitch>
-          <step>D</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="-55.5">down</stem>
-      </note>
-      <note default-x="68">
-        <rest />
-        <duration>10080</duration>
-        <type>quarter</type>
-      </note>
-      <note default-x="125">
-        <pitch>
-          <step>A</step>
-          <octave>2</octave>
-        </pitch>
-        <duration>10080</duration>
-        <type>quarter</type>
-        <stem default-y="1">up</stem>
       </note>
     </measure>
     <!--========================= Measure 12 =========================-->

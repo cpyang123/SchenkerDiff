@@ -1,6 +1,7 @@
 from music21 import stream, note, meter, key, tempo, interval
 from rule_guidance import SCALE_DEGREES, SCALE_DEGREE_TO_C, SCALE_DEGREE_TO_CLASS, C_BASED_0, CLASS_TO_SCALE_DEGREE
 import numpy as np
+from copy import deepcopy
 
 def parse_generated_file(file_path):
     """
@@ -62,44 +63,45 @@ def parse_generated_file(file_path):
     return graphs
 
 
-def realization(X, R, tempo_multiplier=1.0, output_file='output.mid'):
+def realization(X, R, tempo_multiplier=1.0, output_file='output.mid', num_voices=4):
     """
        duration    = R[i][6]
        offset_norm = R[i][7]
        voice_low   = R[i][-3]
     """
-
-    num_parts = len(set(R[i][-2]))
-
     
+    if num_voices == 4:
+        voices = ["Treble", "Alto", "Tenor", "Bass"]
+        voice_centers = ['C5', 'F4', "A3", "C3"]
+    elif num_voices ==2 :
+        voices =  ["Treble", "Bass"]
+        voice_centers = ['C5',"C3"]
+    else:
+        raise NotImplementedError()
+    
+    float_to_voices = {round(f, 3) :voice for f,voice in zip(np.linspace(0, 1, num_voices), voices)}
+    voice_to_part = {voice: stream.Part(id=voice) for voice in voices}
+    voice_to_center = {voice: voice_centers[i] for i, voice in enumerate(voices)}
+    voice_to_prevs = deepcopy(voice_to_center)
 
     # Create the score and parts
     score = stream.Score()
-    treble_part = stream.Part(id='Treble')
-    bass_part = stream.Part(id='Bass')
-
-    # Optional: Set metadata
-    treble_part.append(tempo.MetronomeMark(number=80))
-    treble_part.append(key.KeySignature(0))
-
-    bass_part.append(tempo.MetronomeMark(number=80))
-    bass_part.append(key.KeySignature(0))
-
-    # Initialize previous note trackers
-    treble_center = "C5"
-    bass_center = "C3"
-    prev_treble = "C5"
-    prev_bass = "C3"
-
     possible_octaves = [2, 3, 4, 5, 6]
+
+    for voice in voices:
+        part = voice_to_part[voice]
+        part.append(tempo.MetronomeMark(number=80))
+        part.append(key.KeySignature(0))
+
     for note_idx, note_row in enumerate(R):
         # check if note is not bass or treble
-        if note_row[8] not in [0.0, 1.0]:
-            continue
+        # if note_row[8] not in [0.0, 1.0]:
+        #     continue
 
         # match duration to quarterlength
         duration = note_row[6] * 2
-        is_treble = bool(note_row[8])
+        # is_treble = bool(note_row[8])
+        note_voice = determine_row_voice(note_row, float_to_voices)
 
         # convert note class to pitchclass based on tonic C
         note_class = X[note_idx]
@@ -107,37 +109,45 @@ def realization(X, R, tempo_multiplier=1.0, output_file='output.mid'):
 
         # check if it's a step away from previous note
         curr_pitch_int = C_BASED_0[pitchclass]
-        prev_pitch_int = C_BASED_0[prev_treble[:-1] if is_treble else prev_bass[:-1]]
+        # prev_pitch_int = C_BASED_0[prev_treble[:-1] if is_treble else prev_bass[:-1]]
+        prev_pitch_int = C_BASED_0[voice_to_prevs[note_voice][:-1]]
+
         if 0 <= abs(curr_pitch_int - prev_pitch_int) <= 2:
             candidate_notes, candidate_absolute_distances, candidate_actual_distances, indices_absolute = \
                 find_closest_notes(
-                    prev_treble if is_treble else prev_bass,
+                    voice_to_prevs[note_voice],
                     pitchclass,
                     possible_octaves
                 )
         else:
             candidate_notes, candidate_absolute_distances, candidate_actual_distances, indices_absolute = \
                     find_closest_notes(
-                        treble_center if is_treble else bass_center,
+                        voice_to_center[note_voice],
                         pitchclass,
                         possible_octaves
                     )
 
         nearest_note = candidate_notes[indices_absolute[0]]
         nearest_note.quarterLength = duration
-        if is_treble:
-            treble_part.append(nearest_note)
-            prev_treble = nearest_note.nameWithOctave
-        else:
-            bass_part.append(nearest_note)
-            prev_bass = nearest_note.nameWithOctave
+        voice_to_part[note_voice].append(nearest_note)
+        voice_to_prevs[note_voice] = nearest_note.nameWithOctave
 
-    score.insert(0, treble_part)
-    score.insert(0, bass_part)
+        # if is_treble:
+        #     treble_part.append(nearest_note)
+        #     prev_treble = nearest_note.nameWithOctave
+        # else:
+        #     bass_part.append(nearest_note)
+        #     prev_bass = nearest_note.nameWithOctave
+
+    for voice in voices:
+        score.insert(0, voice_to_part[voice])
+    # score.insert(0, treble_part)
+    # score.insert(0, bass_part)
 
     score.write("musicxml", fp=output_file)
 
-
+def determine_row_voice(row: list, float_to_voice: dict[float: str]) -> str:
+    return float_to_voice[round(row[8], 3)]
 
 def find_closest_notes(from_note_string, to_pitchclass, possible_octaves):
     from_note = note.Note(from_note_string)
@@ -172,5 +182,5 @@ if __name__ == '__main__':
         print("E =", E)
         print("R =", R)
         output_file = f'output_graph_{idx + 1}.xml'
-        realization(X, R, output_file=output_file, tempo_multiplier=3.0)
+        realization(X, R, output_file=output_file, tempo_multiplier=3.0, num_voices=2)
 

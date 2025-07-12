@@ -103,7 +103,7 @@ class TrainLossDiscrete(nn.Module):
                       "train_loss/y_CE": self.y_loss.compute() if true_y.numel() > 0 else -1}
             if wandb.run:
                 wandb.log(to_log, commit=True)
-        return loss_X + self.lambda_train[0] * loss_E + self.lambda_train[1] * loss_y
+        return loss_X #+ self.lambda_train[0] * loss_E + self.lambda_train[1] * loss_y
 
     def reset(self):
         for metric in [self.node_loss, self.edge_loss, self.y_loss]:

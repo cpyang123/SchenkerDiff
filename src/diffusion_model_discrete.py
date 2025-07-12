@@ -203,19 +203,20 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
     def on_train_epoch_start(self) -> None:
         self.print("Starting train epoch...")
         self.start_epoch_time = time.time()
-        self.train_loss.reset()
-        self.train_metrics.reset()
+        # self.train_loss.reset()
+        # self.train_metrics.reset()
 
     def on_train_epoch_end(self) -> None:
         to_log = self.train_loss.log_epoch_metrics()
         self.print(f"Epoch {self.current_epoch}: X_CE: {to_log['train_epoch/x_CE'] :.3f}"
                    f" -- E_CE: {to_log['train_epoch/E_CE'] :.3f} --"
-                   f" y_CE: {to_log['train_epoch/y_CE'] :.3f}"
+                #    f" y_CE: {to_log['train_epoch/y_CE'] :.3f}"
                    f" -- {time.time() - self.start_epoch_time:.1f}s ")
-        epoch_at_metrics, epoch_bond_metrics = self.train_metrics.log_epoch_metrics()
-        self.print(f"Epoch {self.current_epoch}: {epoch_at_metrics} -- {epoch_bond_metrics}")
+        # epoch_at_metrics, epoch_bond_metrics = self.train_metrics.log_epoch_metrics()
+        # self.print(f"Epoch {self.current_epoch}: {epoch_at_metrics} -- {epoch_bond_metrics}")
         if torch.cuda.is_available():
-            print(torch.cuda.memory_summary())
+            # print(torch.cuda.memory_summary())
+            pass
         else:
             print("CUDA is not available. Skipping memory summary.")
 
@@ -415,10 +416,10 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                                                                                       node_mask=node_mask)
 
         kl_distance_X = F.kl_div(input=probX.log(), target=limit_dist_X, reduction='none')
-        kl_distance_E = F.kl_div(input=probE.log(), target=limit_dist_E, reduction='none')
+        # kl_distance_E = F.kl_div(input=probE.log(), target=limit_dist_E, reduction='none')
 
-        return diffusion_utils.sum_except_batch(kl_distance_X) + \
-               diffusion_utils.sum_except_batch(kl_distance_E)
+        return diffusion_utils.sum_except_batch(kl_distance_X) #+ \
+            #    diffusion_utils.sum_except_batch(kl_distance_E)
 
     def compute_Lt(self, X, E, y, pred, noisy_data, node_mask, test):
         pred_probs_X = F.softmax(pred.X, dim=-1)
@@ -446,9 +447,9 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
                                                                                                 pred_E=prob_pred.E,
                                                                                                 node_mask=node_mask)
         kl_x = (self.test_X_kl if test else self.val_X_kl)(prob_true.X, torch.log(prob_pred.X))
-        kl_e = (self.test_E_kl if test else self.val_E_kl)(prob_true.E, torch.log(prob_pred.E))
+        # kl_e = (self.test_E_kl if test else self.val_E_kl)(prob_true.E, torch.log(prob_pred.E))
         # kl_e = 0
-        return self.T * (kl_x + kl_e)
+        return self.T * (kl_x ) #+ kl_e)
 
     def reconstruction_logp(self, t, X, E, r, node_mask):
         # Compute noise values for t = 0.
@@ -551,7 +552,7 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
         # Compute L0 term : -log p (X, E, y | z_0) = reconstruction loss
         prob0 = self.reconstruction_logp(t, X, E, r, node_mask)
 
-        loss_term_0 = self.val_X_logp(X * prob0.X.log()) + self.val_E_logp(E * prob0.E.log())
+        loss_term_0 = self.val_X_logp(X * prob0.X.log()) #+ self.val_E_logp(E * prob0.E.log())
 
         # Combine terms
         nlls = - log_pN + kl_prior + loss_all_t - loss_term_0

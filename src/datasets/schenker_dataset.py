@@ -362,7 +362,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
         # if 'asap-dataset' in hetero_data['name']:
         #     data = Data(x=x, edge_index=edge_indices, edge_attr=edge_attrs, \
         #              y=torch.zeros([1, 0]), r = r)
-        # else: 
+        # else:
         #     final_indicies, final_attrs = SchenkerDiffHeteroGraphData.concat_adjacencies(edge_indices, edge_attrs, s_inx,s_attr, t_edges, b_edges)
 
         #     data = Data(x=x, edge_index=final_indicies, edge_attr=final_attrs, \
@@ -550,7 +550,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
         metric_map_time_sig = METRIC_STRENGTH_QUARTER_ONSET[time_signature_str]
 
         metric_strengths = []
-        #TODO: Handle anacrusis
+        # TODO: Handle anacrusis
         for note in pyscoreparser_notes:
             measure_placement_QL = (SECONDS_TO_QL(note.state_fixed.time_position) - anacrusis_QL) % time_signature_QL
             try:
@@ -830,14 +830,26 @@ class SchenkerDiffHeteroGraphData(Dataset):
             hetero_data, notes_graph, pyscoreparser_notes, include_depth_edges,
             pkl_file=None, include_global_nodes=INCLUDE_GLOBAL_NODES, xml_file=None
     ):
-        edge_indices = {k: [] for k in [
-            "onset",
-            "voice",
+        edge_indices = {}
+        
+        # Getting voices:
+        r_mat = hetero_data["note"].r
+        voices = set(r_mat[:, 7].tolist())
+
+        for voice in voices:
+            edge_indices[f"voice_{voice}"] = []
+            edge_indices[f"back_voice_{voice}"] = []
+
+        for k in ["onset",
+            # "voice",
             "forward",
+            "backward",
             # "slur",
             "melisma",
             # "rest",
-        ]}
+        ] :
+            
+            edge_indices[k] = []
         # edge_indices = HeteroGraphData.add_interval_edges(pyscoreparser_notes, edge_indices)
 
         if include_depth_edges:
@@ -880,6 +892,14 @@ class SchenkerDiffHeteroGraphData(Dataset):
             edge_type = edge[2]
             if edge_type in edge_indices.keys():
                 edge_indices[edge_type].append(from_to)
+                if edge_type == "onset":
+                    edge_indices["onset"].append(from_to[::-1]) # Add reverse edges for onset
+                if edge_type == "forward":
+                    edge_indices["backward"].append(from_to[::-1]) # Adding backwards edges for forward edges
+            if edge_type == "voice":
+                voice = int(r_mat[from_to[0], 7])
+                edge_indices[f"voice_{voice}"].append(from_to)
+                edge_indices[f"back_voice_{voice}"].append(from_to[::-1])
 
         return SchenkerDiffHeteroGraphData.initialize_edge_indices(hetero_data, edge_indices)
 

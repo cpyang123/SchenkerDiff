@@ -1,5 +1,7 @@
 import os
 import pathlib
+import hydra
+from omegaconf import OmegaConf
 
 import torch
 from torch.utils.data import random_split
@@ -38,6 +40,14 @@ SAVE_FOLDER = "processed_data"
 TEST_NAMES = "test-names.txt"
 TEST_SAVE_FOLDER = "processed_data_test"
 
+R_COLUMN_MAP = {
+    "metric_strength": list(range(0, 6)),   # 0-5
+    "duration": 6,
+    "offset_norm": 7,
+    "voice_norm": 8,
+    "voice_rev": 9,
+    "depth": 10,
+}
 
 class EnharmonicError(Exception):
     def __init__(self, message):
@@ -49,6 +59,7 @@ class SchenkerGraphDataset(InMemoryDataset):
         self.dataset_name = dataset_name
         self.split = split
         self.num_graphs = 200  # Adjust based on your data
+        cfg = OmegaConf.load("configs/dataset/schenker.yaml")
         self.dataset = SchenkerDiffHeteroGraphData(root=root, train_names=dataset_name)
         super().__init__(root, transform, pre_transform, pre_filter)
         self.data, self.slices = torch.load(self.processed_paths[0])
@@ -109,19 +120,18 @@ class SchenkerGraphDataModule(AbstractDataModule):
 
         if is_tune:
             datasets = {'train': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
-                                                             split='tune', root=root_path),
+                                                 split='tune', root=root_path, cfg=cfg),
                         'val': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
-                                                           split='val', root=root_path),
+                                            split='val', root=root_path, cfg=cfg),
                         'test': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
-                                                            split='test', root=root_path)}
+                                            split='test', root=root_path, cfg=cfg)}
         else:
             datasets = {'train': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
-                                                             split='train', root=root_path),
+                                                    split='train', root=root_path, cfg=cfg),
                         'val': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
-                                                           split='val', root=root_path),
+                                            split='val', root=root_path, cfg=cfg),
                         'test': SchenkerDiffHeteroGraphData(dataset_name=self.cfg.dataset.name, train_names=names,
-                                                            split='test', root=root_path)}
-
+                                            split='test', root=root_path, cfg=cfg)}
         super().__init__(cfg, datasets)
         self.inner = self.train_dataset
 
@@ -152,7 +162,8 @@ INCLUDE_GLOBAL_NODES = False
 class SchenkerDiffHeteroGraphData(Dataset):
     def __init__(self,
                  root,
-                 dataset_name=None,
+                 cfg,
+                 dataset_name = None,
                  train_names=None,
                  transform=None,
                  pre_transform=None,
@@ -165,6 +176,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
         """
         root: where my dataset should be stored: it will automatically saved at root/processed
         """
+        self.cfg = cfg
         self.test_mode = False if split == 'train' else True
         self.fine_tune = False if split != 'tune' else True
         self.voice_mode = voice_mode
@@ -194,7 +206,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
         return self.len()
 
     def get(self, idx):
-        r_data = self.hetero_to_data(self.data_list[idx])
+        r_data = self.hetero_to_data(self.data_list[idx], self.cfg)
         return r_data
 
     def __getitem__(self, idx):
@@ -261,12 +273,23 @@ class SchenkerDiffHeteroGraphData(Dataset):
         return x
 
     @staticmethod
-    def hetero_to_data(hetero_dict):
+    def hetero_to_data(hetero_dict, cfg):
         # Initialize
+        # cfg = OmegaConf.load("./configs/dataset/schenker.yaml")
         # x = self.resize_tensor(hetero_data['note']['x'], target_rows = MAX_LEN, target_cols = NUM_FEATURES + 1)
         hetero_data = hetero_dict['data']
         x = hetero_data['note']['x']
         r = hetero_data['note']['r']
+
+        if cfg is not None and getattr(cfg, "r_indices", None):
+            keep_idx = []
+            for key in cfg.r_indices:
+                cols = R_COLUMN_MAP[key]
+                if isinstance(cols, list):
+                    keep_idx.extend(cols)
+                else:
+                    keep_idx.append(cols)
+            r = r[:, keep_idx]
 
         # Add depth information to the R matrix
         # make a zero‐column of shape [..., 1]

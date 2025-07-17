@@ -287,8 +287,8 @@ def compute_posterior_distribution(M, M_t, Qt_M, Qsb_M, Qtb_M):
 
     denom = M @ Qtb_M     # (bs, N, d) @ (bs, d, d) = (bs, N, d)
     denom = (denom * M_t).sum(dim=-1)   # (bs, N, d) * (bs, N, d) + sum = (bs, N)
-    # denom = product.sum(dim=-1)
-    # denom[denom == 0.] = 1
+    denom = product.sum(dim=-1)
+    denom[denom == 0.] = 1
 
     prob = product / denom.unsqueeze(-1)    # (bs, N, d)
 

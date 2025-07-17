@@ -738,7 +738,6 @@ class DiscreteDenoisingDiffusion(pl.LightningModule):
 
         return E_out, r_out
 
-    @staticmethod
     def sample_r_E(self, batch_size):
         """
         Samples `batch_size` random pickle files from the directory 

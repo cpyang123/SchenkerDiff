@@ -147,7 +147,7 @@ def realization(X, R, tempo_multiplier=1.0, output_file='output.mid', num_voices
     score.write("musicxml", fp=output_file)
 
 def determine_row_voice(row: list, float_to_voice: dict[float: str]) -> str:
-    return float_to_voice[round(row[8], 3)]
+    return float_to_voice[round(row[9], 3)]
 
 def find_closest_notes(from_note_string, to_pitchclass, possible_octaves):
     from_note = note.Note(from_note_string)

@@ -5,7 +5,7 @@
   <identification>
     <creator type="composer">Music21</creator>
     <encoding>
-      <encoding-date>2025-07-12</encoding-date>
+      <encoding-date>2025-07-15</encoding-date>
       <software>music21 v.8.3.0</software>
     </encoding>
   </identification>
@@ -16,15 +16,15 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Pc7e1f8d252d12479d2f4085febd661b5">
+    <score-part id="Peaa4a581ab0a142b468bb16594699785">
       <part-name />
     </score-part>
-    <score-part id="Pb141e156c621ca248bb3a5f5d9246566">
+    <score-part id="P9f04f48ba51d4a8a2c00aaedf1bbda12">
       <part-name />
     </score-part>
   </part-list>
   <!--=========================== Part 1 ===========================-->
-  <part id="Pc7e1f8d252d12479d2f4085febd661b5">
+  <part id="Peaa4a581ab0a142b468bb16594699785">
     <!--========================= Measure 1 ==========================-->
     <measure number="1">
       <attributes>
@@ -52,7 +52,7 @@
       </direction>
       <note>
         <pitch>
-          <step>C</step>
+          <step>F</step>
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
@@ -70,7 +70,7 @@
       </note>
       <note>
         <pitch>
-          <step>F</step>
+          <step>D</step>
           <octave>5</octave>
         </pitch>
         <duration>5040</duration>
@@ -80,7 +80,7 @@
       </note>
       <note>
         <pitch>
-          <step>G</step>
+          <step>F</step>
           <octave>5</octave>
         </pitch>
         <duration>10080</duration>
@@ -99,11 +99,12 @@
     <measure number="2">
       <note>
         <pitch>
-          <step>C</step>
+          <step>G</step>
           <octave>5</octave>
         </pitch>
-        <duration>40320</duration>
-        <type>whole</type>
+        <duration>30240</duration>
+        <type>half</type>
+        <dot />
       </note>
       <barline location="right">
         <bar-style>light-heavy</bar-style>
@@ -111,7 +112,7 @@
     </measure>
   </part>
   <!--=========================== Part 2 ===========================-->
-  <part id="Pb141e156c621ca248bb3a5f5d9246566">
+  <part id="P9f04f48ba51d4a8a2c00aaedf1bbda12">
     <!--========================= Measure 1 ==========================-->
     <measure number="1">
       <attributes>
@@ -139,7 +140,7 @@
       </direction>
       <note>
         <pitch>
-          <step>E</step>
+          <step>C</step>
           <octave>3</octave>
         </pitch>
         <duration>10080</duration>
@@ -147,31 +148,27 @@
       </note>
       <note>
         <pitch>
-          <step>E</step>
+          <step>C</step>
           <octave>3</octave>
         </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">begin</beam>
-      </note>
-      <note>
-        <pitch>
-          <step>A</step>
-          <octave>2</octave>
-        </pitch>
-        <duration>5040</duration>
-        <type>eighth</type>
-        <stem>up</stem>
-        <beam number="1">end</beam>
+        <duration>10080</duration>
+        <type>quarter</type>
       </note>
       <note>
         <pitch>
           <step>D</step>
           <octave>3</octave>
         </pitch>
-        <duration>20160</duration>
-        <type>half</type>
+        <duration>10080</duration>
+        <type>quarter</type>
+      </note>
+      <note>
+        <pitch>
+          <step>G</step>
+          <octave>2</octave>
+        </pitch>
+        <duration>10080</duration>
+        <type>quarter</type>
       </note>
     </measure>
     <!--========================= Measure 2 ==========================-->
@@ -181,8 +178,9 @@
           <step>C</step>
           <octave>3</octave>
         </pitch>
-        <duration>40320</duration>
-        <type>whole</type>
+        <duration>30240</duration>
+        <type>half</type>
+        <dot />
       </note>
       <barline location="right">
         <bar-style>light-heavy</bar-style>

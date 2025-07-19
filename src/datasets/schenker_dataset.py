@@ -70,7 +70,7 @@ class SchenkerGraphDataset(InMemoryDataset):
     @property
     def processed_file_names(self):
         np.random.seed(42)
-        n_samples = 2250
+        n_samples = 1780
 
         # Randomly select 90 indices for the test set
         test_indices = np.random.choice(n_samples, 200, replace=False)
@@ -203,7 +203,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
     @property
     def processed_file_names(self):
         np.random.seed(42)
-        n_samples = 2250
+        n_samples = 1780
 
         # Randomly select 90 indices for the test set
         test_indices = np.random.choice(n_samples, 200, replace=False)
@@ -685,6 +685,14 @@ class SchenkerDiffHeteroGraphData(Dataset):
             # "offsets": np.array([offset / np.max(offsets) for offset in offsets]),
             "scale_degrees": SchenkerDiffHeteroGraphData.get_scale_degrees(pyscoreparser_notes, key_signature)
         }
+
+        # Exclude files with disallowed intervals:
+
+        reverse_scale_degree_map = {v: k for k, v in SCALE_DEGREE_MAP.items()}
+        for note in node_features['scale_degrees']:
+            if reverse_scale_degree_map[note] not in  ["P1", "M2", "m3", "M3", "P4", "P5", "m6", "M6", "m7", "M7", "P8" ]:
+                raise TypeError
+
         # node_features["pitch_class"] = SchenkerDiffHeteroGraphData.one_hot_convert(node_features["pitch_class"], len(PITCH_CLASS_MAP))
         # node_features["metric_strength"] = SchenkerDiffHeteroGraphData.one_hot_convert(node_features["metric_strength"], 6)
         # node_features["midi"] = self.one_hot_convert(node_features["midi"], 88)
@@ -834,7 +842,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
         
         # Getting voices:
         r_mat = hetero_data["note"].r
-        voices = set(r_mat[:, 7].tolist())
+        voices = set(np.round(r_mat[:, 8], 3).tolist())
 
         for voice in voices:
             edge_indices[f"voice_{voice}"] = []
@@ -897,7 +905,7 @@ class SchenkerDiffHeteroGraphData(Dataset):
                 if edge_type == "forward":
                     edge_indices["backward"].append(from_to[::-1]) # Adding backwards edges for forward edges
             if edge_type == "voice":
-                voice = int(r_mat[from_to[0], 7])
+                voice = round(float(r_mat[from_to[0], 8]),3)
                 edge_indices[f"voice_{voice}"].append(from_to)
                 edge_indices[f"back_voice_{voice}"].append(from_to[::-1])
 

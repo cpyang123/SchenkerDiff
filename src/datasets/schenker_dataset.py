@@ -843,12 +843,19 @@ class SchenkerDiffHeteroGraphData(Dataset):
         # Getting voices:
         r_mat = hetero_data["note"].r
         voices = set(np.round(r_mat[:, 8], 3).tolist())
+        # Get Firmata edges:
+        fermata_notes = []
+        for i in range(len(pyscoreparser_notes)):
+            if pyscoreparser_notes[i].note_notations.is_fermata == True:
+                fermata_notes.append(i)
 
         for voice in voices:
             edge_indices[f"voice_{voice}"] = []
             edge_indices[f"back_voice_{voice}"] = []
 
-        for k in ["onset",
+        for k in [
+            "fermata_onset",
+            "onset",
             # "voice",
             "forward",
             "backward",
@@ -902,6 +909,9 @@ class SchenkerDiffHeteroGraphData(Dataset):
                 edge_indices[edge_type].append(from_to)
                 if edge_type == "onset":
                     edge_indices["onset"].append(from_to[::-1]) # Add reverse edges for onset
+                    if from_to[0] in fermata_notes or from_to[1] in fermata_notes:
+                        edge_indices["fermata_onset"].append(from_to) 
+                        edge_indices["fermata_onset"].append(from_to[::-1])  # Add reverse edges for fermata onset
                 if edge_type == "forward":
                     edge_indices["backward"].append(from_to[::-1]) # Adding backwards edges for forward edges
             if edge_type == "voice":
